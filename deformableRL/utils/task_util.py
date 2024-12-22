@@ -27,40 +27,47 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-"""Installation script for the 'isaacgymenvs' python package."""
+def import_tasks():
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
+    from deformableRL.tasks.anymal import AnymalTask
+    from deformableRL.tasks.anymal_terrain import AnymalTerrainTask
 
-from setuptools import setup, find_packages
+    # Mappings from strings to environments
+    task_map = {
+        "Anymal": AnymalTask,
+        "AnymalTerrain": AnymalTerrainTask,
+    }
 
-import os
+    task_map_warp = {
+    }
 
-# Minimum dependencies required prior to installation
-INSTALL_REQUIRES = [
-    "numpy==1.23.5",
-    "protobuf==3.20.2",
-    "omegaconf==2.3.0",
-    "hydra-core==1.3.2",
-    "urllib3==1.26.16",
-    # "rl-games==1.6.1",
-    "moviepy==1.0.3",
-    "gymnasium==0.28.1"
-]
+    return task_map, task_map_warp
 
-# Installation operation
-setup(
-    name="deformableRL",
-    author="NVIDIA",
-    version="4.0.0",
-    description="RL environments for robot learning in NVIDIA Isaac Sim.",
-    keywords=["robotics", "rl"],
-    include_package_data=True,
-    install_requires=INSTALL_REQUIRES,
-    packages=find_packages("."),
-    classifiers=["Natural Language :: English", "Programming Language :: Python :: 3.7, 3.8"],
-    zip_safe=False,
-)
 
-# EOF
+def initialize_task(config, env, init_sim=True):
+    from deformableRL.utils.config_utils.sim_config import SimConfig
+
+    sim_config = SimConfig(config)
+    task_map, task_map_warp = import_tasks()
+
+    cfg = sim_config.config
+    if cfg["warp"]:
+        task_map = task_map_warp
+
+    task = task_map[cfg["task_name"]](
+        name=cfg["task_name"], sim_config=sim_config, env=env
+    )
+
+    backend = "warp" if cfg["warp"] else "torch"
+
+    rendering_dt = sim_config.get_physics_params()["rendering_dt"]
+
+    env.set_task(
+        task=task,
+        sim_params=sim_config.get_physics_params(),
+        backend=backend,
+        init_sim=init_sim,
+        rendering_dt=rendering_dt,
+    )
+
+    return task
