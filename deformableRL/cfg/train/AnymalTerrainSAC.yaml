@@ -1,0 +1,76 @@
+params:  
+
+  seed: ${...seed}
+
+  algo:
+    name: sac
+
+  model:
+    name: soft_actor_critic
+
+  network:
+    name: soft_actor_critic
+    separate: True
+    space:
+      continuous:
+    mlp:
+      # units: [512, 256, 128]
+      # units: [512, 512, 128]
+      units: [1024, 1024, 1024]
+      activation: relu
+      
+      initializer:
+        name: default
+    log_std_bounds: [-5, 2]
+
+    num_critics: 2
+    use_dropout: False
+    dropout_prob: 0.05
+    normalization: None #layer_norm
+
+  load_checkpoint: ${if:${...checkpoint},True,False} # flag which sets whether to load the checkpoint
+  load_path: ${...checkpoint} # path to the checkpoint to load
+
+  config:
+    name: ${resolve_default:AnymalTerrainSAC,${....experiment}}
+    full_experiment_name: ${.name}
+    env_name: rlgpu
+    device: ${....rl_device}
+    device_name: ${....rl_device}
+    multi_gpu: ${....multi_gpu}
+    normalize_input: True
+    reward_shaper:
+      scale_value: 1.0
+    max_epochs: ${resolve_default:150000,${....max_iterations}}
+    num_steps_per_episode: 1
+    save_best_after: 100
+    save_frequency: 1000
+    gamma: 0.99
+    init_alpha: 1.0 #0.1 #1.0
+    alpha_lr: 0.005 #0.2
+    actor_lr: 0.0001 #0.0003 #0.0005
+    critic_lr: 0.0018 #0.0003 ##0.0005
+    critic_tau: 0.05 #0.005
+    batch_size: 2048 #4096 #256  #4096
+    target_entropy: -12
+    learnable_temperature: true
+    num_seed_steps: 5
+    num_warmup_steps: 100
+    replay_buffer_size: 1000000
+    num_actors: ${....task.env.numEnvs}
+    clip_actions: True
+
+    # REDQ-Specific Parameters (if using REDQ variant)
+    num_critics: 2
+    critic_subsample_size: 2
+    q_target_mode: 'min'
+
+    # Additional training and logging settings
+    gradient_steps: 2
+    policy_delay: 2
+    policy_delay_offset: 1
+    score_to_win: 1000
+    log_frequency: 100  # Logging frequency for TensorBoard or other monitoring
+    max_env_steps: 1000  # Temporary, adjust as needed
+    target_entropy_coef: 1.0  # Scaling factor for entropy target
+

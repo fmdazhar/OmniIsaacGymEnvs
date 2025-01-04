@@ -35,6 +35,60 @@ from omni.isaac.core.prims import XFormPrim
 from pxr import Gf, PhysxSchema, Sdf, UsdPhysics
 from scipy import interpolate
 
+def flat_terrain(terrain, height_meters=0):
+    """
+    Generate a flat terrain.
+
+    Parameters:
+        terrain (SubTerrain): the terrain object
+        height_meters (float): the constant height of the terrain in meters
+
+    Returns:
+        terrain (SubTerrain): updated terrain with a flat surface
+    """
+    # Convert the height from meters to discrete units
+    height_units = int(height_meters / terrain.vertical_scale)
+    terrain.height_field_raw[:, :] = height_units
+    return terrain
+
+
+def central_depression_terrain(terrain, depression_depth, platform_height, depression_size):
+    """
+    Generate a terrain with a central negative heightfield box and a flat platform around it.
+
+    Parameters:
+        terrain (SubTerrain): The terrain object.
+        depression_depth (float): Depth of the central depression in meters (negative value).
+        platform_height (float): Height of the surrounding platform in meters.
+        depression_size (float): Size of the depression square in meters.
+
+    Returns:
+        terrain (SubTerrain): Updated terrain.
+    """
+
+    # Convert parameters to discrete units
+    depression_depth_units = int(depression_depth / terrain.vertical_scale)
+    platform_height_units = int(platform_height / terrain.vertical_scale)
+    depression_size_units = int(depression_size / terrain.horizontal_scale)
+
+    # Get terrain dimensions
+    total_width, total_length = terrain.height_field_raw.shape
+
+    # Calculate central region coordinates
+    center_x = total_width // 2
+    center_y = total_length // 2
+    half_size = depression_size_units // 2
+
+    depression_start_x = total_width - depression_size_units
+    depression_end_x = total_width
+    depression_start_y = center_y - half_size
+    depression_end_y = center_y + half_size
+
+    # Set heights for depression and platform
+    terrain.height_field_raw[:, :] = platform_height_units
+    terrain.height_field_raw[depression_start_x:depression_end_x, depression_start_y:depression_end_y] = depression_depth_units
+
+    return terrain
 
 def random_uniform_terrain(
     terrain,

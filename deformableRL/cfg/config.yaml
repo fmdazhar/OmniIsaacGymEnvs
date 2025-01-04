@@ -58,11 +58,11 @@ recording_fps: 30
 # directory to save recordings in
 recording_dir: ''
 
-wandb_activate: False
+wandb_activate: True
 wandb_group: ''
 wandb_name: ${train.params.config.name}
-wandb_entity: ''
-wandb_project: 'deformableRL'
+wandb_entity: 'bluewolf'
+wandb_project: 'rl'
 
 # path to a kit app file
 kit_app: ''
@@ -76,8 +76,8 @@ warp: False
 # set default task and default training config based on task
 defaults:
   - _self_
-  - task: Anymal
-  - train: ${task}PPO
+  - task: AnymalTerrain
+  - train: ${task}SAC
   - override hydra/job_logging: disabled
 
 # set the directory where the output files get saved

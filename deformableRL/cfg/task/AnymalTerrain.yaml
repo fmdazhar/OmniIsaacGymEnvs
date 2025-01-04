@@ -3,7 +3,7 @@ name: AnymalTerrain
 physics_engine: ${..physics_engine}
 
 env:
-  numEnvs: ${resolve_default:2048,${...num_envs}}
+  numEnvs: ${resolve_default:8,${...num_envs}}
   numObservations: 188
   numActions: 12
   envSpacing: 3.  # [m]
@@ -13,7 +13,8 @@ env:
     dynamicFriction: 1.0  # [-]
     restitution: 0.        # [-]
     # rough terrain only:
-    curriculum: true
+    curriculum: False
+    VelocityCurriculum : True
     maxInitMapLevel: 0
     mapLength: 8.
     mapWidth: 8.
@@ -32,9 +33,14 @@ env:
 
   randomCommandVelocityRanges:
     # train
-    linear_x: [-1., 1.] # min max [m/s]
-    linear_y: [-1., 1.]   # min max [m/s]
-    yaw: [-3.14, 3.14]    # min max [rad/s]
+    linear_x: [-0.2, 0.2] # min max [m/s]
+    linear_y: [-0.2, 0.2]   # min max [m/s]
+    yaw: [-0.2, 0.2]    # min max [rad/s]
+
+  limitCommandVelocityRanges:
+    linear_x: [-1., 1.]
+    linear_y: [-0.6., 0.6.]
+    yaw: [-1, 1] # min max [rad/s]
 
   control:
     # PD Drive parameters:
@@ -65,15 +71,15 @@ env:
   learn:
     # rewards
     terminalReward: 0.0
-    linearVelocityXYRewardScale: 0.02 #1.0
-    linearVelocityZRewardScale: -0.04 #-4.0
-    angularVelocityXYRewardScale: -0.001 #-0.05
-    angularVelocityZRewardScale: 0.01 #0.5
+    linearVelocityXYRewardScale: 1.0
+    linearVelocityZRewardScale: -4.0
+    angularVelocityXYRewardScale: -0.05
+    angularVelocityZRewardScale: 0.5
     orientationRewardScale: -0.
     torqueRewardScale: -0.00002 
-    jointAccRewardScale: -0.000000005 #-0.0005
-    baseHeightRewardScale: -0.6 #-0.0
-    actionRateRewardScale: -0.0002 #-0.01
+    jointAccRewardScale: -0.0005
+    baseHeightRewardScale: -0.0
+    actionRateRewardScale: -0.01
     fallenOverRewardScale: -1.0
     # cosmetics
     hipRewardScale: -0. #25

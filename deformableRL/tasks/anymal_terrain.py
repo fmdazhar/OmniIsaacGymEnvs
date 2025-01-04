@@ -111,9 +111,13 @@ class AnymalTerrainTask(RLTask):
         self.rew_scales["fallen_over"] = self._task_cfg["env"]["learn"]["fallenOverRewardScale"]
 
         # command ranges
+        self.vel_curriculum = self._task_cfg["env"]["terrain"]["VelocityCurriculum"]
         self.command_x_range = self._task_cfg["env"]["randomCommandVelocityRanges"]["linear_x"]
         self.command_y_range = self._task_cfg["env"]["randomCommandVelocityRanges"]["linear_y"]
         self.command_yaw_range = self._task_cfg["env"]["randomCommandVelocityRanges"]["yaw"]
+        self.limit_vel_x = self._task_cfg["env"]["limitCommandVelocityRanges"]["linear_x"]
+        self.limit_vel_y = self._task_cfg["env"]["limitCommandVelocityRanges"]["linear_y"]
+        self.limit_vel_yaw = self._task_cfg["env"]["limitCommandVelocityRanges"]["yaw"]
 
         # base init state
         pos = self._task_cfg["env"]["baseInitState"]["pos"]
@@ -196,6 +200,25 @@ class AnymalTerrainTask(RLTask):
         self.height_samples = (
             torch.tensor(self.terrain.heightsamples).view(self.terrain.tot_rows, self.terrain.tot_cols).to(self.device)
         )
+    def update_command_curriculum(self, env_ids):
+        """ Implements a curriculum of increasing commands
+
+        Args:
+            env_ids (List[int]): ids of environments being reset
+        """
+        # If the tracking reward is above 80% of the maximum, increase the range of commands
+        if torch.mean(self.episode_sums["lin_vel_xy"][env_ids]) / self.max_episode_length_s > 0.8 * self.rew_scales["lin_vel_xy"]:
+            self.command_x_range[0] = np.clip(self.command_x_range[0] - 0.2, -self.limit_vel_x[0], 0.).item()
+            self.command_x_range[1] = np.clip(self.command_x_range[1] + 0.2, 0., self.limit_vel_x[1]).item()
+
+            # Increase the range of commands for y
+            self.command_y_range[0] = np.clip(self.command_y_range[0] - 0.2, -self.limit_vel_y[0], 0.).item()
+            self.command_y_range[1] = np.clip(self.command_y_range[1] + 0.2, 0., self.limit_vel_y[1]).item()
+        
+        if torch.mean(self.episode_sums["ang_vel_z"][env_ids]) / self.max_episode_length_s > 0.8 * self.rew_scales["ang_vel_z"]:
+        # Increase the range of commands for yaw
+            self.command_yaw_range[0] = np.clip(self.command_yaw_range[0] - 0.2, -self.limit_vel_yaw[0], 0.).item()
+            self.command_yaw_range[1] = np.clip(self.command_yaw_range[1] + 0.2, 0., self.limit_vel_yaw[1]).item()
 
     def set_up_scene(self, scene) -> None:
         self._stage = get_current_stage()
@@ -330,6 +353,9 @@ class AnymalTerrainTask(RLTask):
         self.dof_pos[env_ids] = self.default_dof_pos[env_ids] * positions_offset
         self.dof_vel[env_ids] = velocities
 
+        if self.vel_curriculum and (self.common_step_counter % self.max_episode_length==0):
+            self.update_command_curriculum(env_ids)
+
         self.update_terrain_level(env_ids)
         self.base_pos[env_ids] = self.base_init_state[0:3]
         self.base_pos[env_ids, 0:3] += self.env_origins[env_ids]
@@ -371,6 +397,9 @@ class AnymalTerrainTask(RLTask):
             )
             self.episode_sums[key][env_ids] = 0.0
         self.extras["episode"]["terrain_level"] = torch.mean(self.terrain_levels.float())
+        self.extras["episode"]["max_command_x"] = self.command_x_range[1]
+        self.extras["episode"]["max_command_y"] = self.command_y_range[1]
+        self.extras["episode"]["max_command_yaw"] = self.command_yaw_range[1]
 
     def update_terrain_level(self, env_ids):
         if not self.init_done or not self.curriculum:
@@ -500,9 +529,9 @@ class AnymalTerrainTask(RLTask):
         # joint acc penalty
         rew_joint_acc = torch.sum(torch.square(self.last_dof_vel - self.dof_vel) / self.dt, dim=1) * self.rew_scales["joint_acc"]
 
-        # Penalize collisions on selected bodies
-        rew_collision = torch.sum(1. * (torch.norm(self.contact_forces[:, self.penalised_contact_indices, :], dim=-1) > 0.1),
-                         dim=1)
+        # # Penalize collisions on selected bodies
+        # rew_collision = torch.sum(1. * (torch.norm(self.contact_forces[:, self.penalised_contact_indices, :], dim=-1) > 0.1),
+        #                  dim=1)
 
                         
         # fallen over penalty
