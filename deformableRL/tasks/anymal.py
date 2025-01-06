@@ -105,7 +105,8 @@ class AnymalTask(RLTask):
         super().set_up_scene(scene)
         self._anymals = AnymalView(prim_paths_expr="/World/envs/.*/anymal", name="anymalview")
         scene.add(self._anymals)
-        scene.add(self._anymals._knees)
+        scene.add(self._anymals._thigh)
+        scene.add(self._anymals._shank)
         scene.add(self._anymals._base)
 
         return
@@ -114,13 +115,16 @@ class AnymalTask(RLTask):
         super().initialize_views(scene)
         if scene.object_exists("anymalview"):
             scene.remove_object("anymalview", registry_only=True)
-        if scene.object_exists("knees_view"):
-            scene.remove_object("knees_view", registry_only=True)
+        if scene.object_exists("thigh_view"):
+            scene.remove_object("thigh_view", registry_only=True)
+        if scene.object_exists("shank_view"):
+            scene.remove_object("shank_view", registry_only=True)
         if scene.object_exists("base_view"):
             scene.remove_object("base_view", registry_only=True)
         self._anymals = AnymalView(prim_paths_expr="/World/envs/.*/anymal", name="anymalview")
         scene.add(self._anymals)
-        scene.add(self._anymals._knees)
+        scene.add(self._anymals._thigh)
+        scene.add(self._anymals._shank)
         scene.add(self._anymals._base)
 
     def get_anymal(self):

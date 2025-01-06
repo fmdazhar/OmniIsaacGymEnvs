@@ -95,6 +95,9 @@ class AnymalTerrainTask(RLTask):
         self.height_meas_scale = self._task_cfg["env"]["learn"]["heightMeasurementScale"]
         self.action_scale = self._task_cfg["env"]["control"]["actionScale"]
 
+        #reward
+        self.base_height_target = self._task_cfg["env"]["learn"]["baseHeightTarget"]
+        self.soft_dof_pos_limit = self._task_cfg["env"]["learn"]["softDofPositionLimit"]
         # reward scales
         self.rew_scales = {}
         self.rew_scales["termination"] = self._task_cfg["env"]["learn"]["terminalReward"]
@@ -139,7 +142,7 @@ class AnymalTerrainTask(RLTask):
         self.Kd = self._task_cfg["env"]["control"]["damping"]
         self.curriculum = self._task_cfg["env"]["terrain"]["curriculum"]
         self.base_threshold = 0.2
-        self.knee_threshold = 0.1
+        self.thigh_threshold = 0.1
 
         for key in self.rew_scales.keys():
             self.rew_scales[key] *= self.dt
@@ -229,7 +232,9 @@ class AnymalTerrainTask(RLTask):
             prim_paths_expr="/World/envs/.*/anymal", name="anymal_view", track_contact_forces=True
         )
         scene.add(self._anymals)
-        scene.add(self._anymals._knees)
+        scene.add(self._anymals._thigh)
+        scene.add(self._anymals._shank)
+        scene.add(self._anymals._foot)
         scene.add(self._anymals._base)
 
     def initialize_views(self, scene):
@@ -239,15 +244,21 @@ class AnymalTerrainTask(RLTask):
         super().initialize_views(scene)
         if scene.object_exists("anymal_view"):
             scene.remove_object("anymal_view", registry_only=True)
-        if scene.object_exists("knees_view"):
-            scene.remove_object("knees_view", registry_only=True)
+        if scene.object_exists("thigh_view"):
+            scene.remove_object("thigh_view", registry_only=True)
+        if scene.object_exists("shank_view"):
+            scene.remove_object("shank_view", registry_only=True)
+        if scene.object_exists("foot_view"):
+            scene.remove_object("foot_view", registry_only=True)
         if scene.object_exists("base_view"):
             scene.remove_object("base_view", registry_only=True)
         self._anymals = AnymalView(
             prim_paths_expr="/World/envs/.*/anymal", name="anymal_view", track_contact_forces=True
         )
         scene.add(self._anymals)
-        scene.add(self._anymals._knees)
+        scene.add(self._anymals._thigh)
+        scene.add(self._anymals._shank)
+        scene.add(self._anymals._foot)
         scene.add(self._anymals._base)
 
     def get_terrain(self, create_mesh=True):
@@ -283,6 +294,19 @@ class AnymalTerrainTask(RLTask):
             name = self.dof_names[i]
             angle = self.named_default_joint_angles[name]
             self.default_dof_pos[:, i] = angle
+        
+        # Get joint limits
+        dof_limits = anymal.get_dof_limits()
+        lower_limits = dof_limits[0, :, 0]    
+        upper_limits = dof_limits[0, :, 1]    
+        midpoint = 0.5 * (lower_limits + upper_limits)
+        limit_range = upper_limits - lower_limits
+        soft_lower_limits = midpoint - 0.5 * limit_range * self.soft_dof_pos_limit
+        soft_upper_limits = midpoint + 0.5 * limit_range * self.soft_dof_pos_limit
+        self.anymal_dof_lower_limits = dof_limits[0, :, 0].to(device=self._device)
+        self.anymal_dof_upper_limits = dof_limits[0, :, 1].to(device=self._device)
+        self.anymal_dof_soft_lower_limits = soft_lower_limits.to(device=self._device)
+        self.anymal_dof_soft_upper_limits = soft_upper_limits.to(device=self._device)
 
     def post_reset(self):
         self.base_init_state = torch.tensor(
@@ -324,6 +348,7 @@ class AnymalTerrainTask(RLTask):
         self.feet_indices = torch.zeros(len(feet_names), dtype=torch.long, device=self.device, requires_grad=False)
 
         self.feet_air_time = torch.zeros(self.num_envs, self.feet_indices.shape[0], dtype=torch.float, device=self.device, requires_grad=False)
+        self.contact_filt = torch.zeros(self.num_envs, len(self.feet_indices), dtype=torch.bool, device=self.device, requires_grad=False)
         self.last_contacts = torch.zeros(self.num_envs, len(self.feet_indices), dtype=torch.bool, device=self.device,
                                          requires_grad=False)
         self.last_dof_vel = torch.zeros((self.num_envs, 12), dtype=torch.float, device=self.device, requires_grad=False)
@@ -337,8 +362,11 @@ class AnymalTerrainTask(RLTask):
         self.base_quat = torch.zeros((self.num_envs, 4), dtype=torch.float, device=self.device)
         self.base_velocities = torch.zeros((self.num_envs, 6), dtype=torch.float, device=self.device)
 
-        self.knee_pos = torch.zeros((self.num_envs * 4, 3), dtype=torch.float, device=self.device)
-        self.knee_quat = torch.zeros((self.num_envs * 4, 4), dtype=torch.float, device=self.device)
+        self.thigh_pos = torch.zeros((self.num_envs * 4, 3), dtype=torch.float, device=self.device)
+        self.thigh_quat = torch.zeros((self.num_envs * 4, 4), dtype=torch.float, device=self.device)
+        self.foot_contact_forces = torch.zeros(self.num_envs, 4, 3, dtype=torch.float, device=self.device, requires_grad=False)
+        self.thigh_contact_forces = torch.zeros(self.num_envs, 4, 3, dtype=torch.float, device=self.device, requires_grad=False)
+        self.shank_contact_forces = torch.zeros(self.num_envs, 4, 3, dtype=torch.float, device=self.device, requires_grad=False)
 
         indices = torch.arange(self._num_envs, dtype=torch.int64, device=self._device)
         self.reset_idx(indices)
@@ -421,7 +449,13 @@ class AnymalTerrainTask(RLTask):
     def refresh_body_state_tensors(self):
         self.base_pos, self.base_quat = self._anymals.get_world_poses(clone=False)
         self.base_velocities = self._anymals.get_velocities(clone=False)
-        self.knee_pos, self.knee_quat = self._anymals._knees.get_world_poses(clone=False)
+        self.thigh_pos, self.thigh_quat = self._anymals._thigh.get_world_poses(clone=False)
+    
+    def refresh_net_contact_force_tensors(self):
+        self.foot_contact_forces = self._anymals._foot.get_net_contact_forces(dt=self.dt,clone=False).view(self._num_envs, 4, 3)
+        self.thigh_contact_forces = self._anymals._thigh.get_net_contact_forces(dt=self.dt,clone=False).view(self._num_envs, 4, 3)
+        self.shank_contact_forces = self._anymals._shank.get_net_contact_forces(dt=self.dt,clone=False).view(self._num_envs, 4, 3)
+
 
     def pre_physics_step(self, actions):
         if not self.world.is_playing():
@@ -448,6 +482,7 @@ class AnymalTerrainTask(RLTask):
 
             self.refresh_dof_state_tensors()
             self.refresh_body_state_tensors()
+            self.refresh_net_contact_force_tensors()
 
             self.common_step_counter += 1
             if self.common_step_counter % self.push_interval == 0:
@@ -490,13 +525,8 @@ class AnymalTerrainTask(RLTask):
             torch.ones_like(self.timeout_buf),
             torch.zeros_like(self.timeout_buf),
         )
-        knee_contact = (
-            torch.norm(self._anymals._knees.get_net_contact_forces(clone=False).view(self._num_envs, 4, 3), dim=-1)
-            > 1.0
-        )
-        self.has_fallen = (torch.norm(self._anymals._base.get_net_contact_forces(clone=False), dim=1) > 1.0) | (
-            torch.sum(knee_contact, dim=-1) > 1.0
-        )
+        
+        self.has_fallen = (torch.norm(self._anymals._base.get_net_contact_forces(clone=False), dim=1) > 1.0) 
         self.reset_buf = self.has_fallen.clone()
         self.reset_buf = torch.where(self.timeout_buf.bool(), torch.ones_like(self.reset_buf), self.reset_buf)
 
@@ -515,25 +545,29 @@ class AnymalTerrainTask(RLTask):
         rew_orient = torch.sum(torch.square(self.projected_gravity[:, :2]), dim=1) * self.rew_scales["orient"]
 
         # base height penalty
-        rew_base_height = torch.square(self.base_pos[:, 2] - 0.52) * self.rew_scales["base_height"]
+        rew_base_height = torch.square(self.base_pos[:, 2] - self.base_height_target) * self.rew_scales["base_height"]
 
         # torque penalty
         rew_torque = torch.sum(torch.square(self.torques), dim=1) * self.rew_scales["torque"]
 
         # torque energy penalty
-        rew_energy =torch.sum(torch.multiply(self.torques, self.dof_vel), dim=1) * self.rew_scales["torque"]
+        rew_energy = torch.sum(torch.multiply(self.torques, self.dof_vel), dim=1) * self.rew_scales["torque"]
 
         # Penalize dof velocities
-        rew_dof_vel = torch.sum(torch.square(self.dof_vel), dim=1)
+        rew_dof_vel = torch.sum(torch.square(self.dof_vel), dim=1) * self.rew_scales["joint_vel"]
 
         # joint acc penalty
         rew_joint_acc = torch.sum(torch.square(self.last_dof_vel - self.dof_vel) / self.dt, dim=1) * self.rew_scales["joint_acc"]
 
-        # # Penalize collisions on selected bodies
-        # rew_collision = torch.sum(1. * (torch.norm(self.contact_forces[:, self.penalised_contact_indices, :], dim=-1) > 0.1),
-        #                  dim=1)
-
-                        
+        # Penalize collisions on selected bodies
+        thigh_contact = (
+            torch.norm(self.thigh_contact_forces, dim=-1)
+            > 0.1
+        )
+        shank_contact = (torch.norm(self.shank_contact_forces, dim=-1) > 0.1)
+        total_contact = thigh_contact + shank_contact
+        rew_collision = torch.sum(total_contact, dim=-1) * self.rew_scales["collision"]
+                           
         # fallen over penalty
         rew_fallen_over = self.has_fallen * self.rew_scales["fallen_over"]
 
@@ -542,10 +576,26 @@ class AnymalTerrainTask(RLTask):
             torch.sum(torch.square(self.last_actions - self.actions), dim=1) * self.rew_scales["action_rate"]
         )
 
+        # Penalize dof positions too close to the limit
+        out_of_limits = -(self.dof_pos - self.anymal_dof_soft_lower_limits).clip(max=0.)  # lower limit
+        out_of_limits += (self.dof_pos - self.anymal_dof_soft_upper_limits).clip(min=0.)
+        rew_dof_pos_limits = torch.sum(out_of_limits, dim=1)
+
         # cosmetic penalty for hip motion
         rew_hip = (
             torch.sum(torch.abs(self.dof_pos[:, 0:4] - self.default_dof_pos[:, 0:4]), dim=1) * self.rew_scales["hip"]
         )
+
+        # Increment feet_air_time for each step the foot is not in contact
+        contact = self.feet_contact_forces[:, self.feet_indices, 2] > 1.0  # Placeholder for contact detection, adjust threshold as needed
+        self.contact_filt = torch.logical_or(contact, self.last_contacts) 
+        self.last_contacts = contact
+        first_contact = (self.feet_air_time > 0.) * self.contact_filt
+        self.feet_air_time += self.dt  # Assuming self.dt is the timestep duration
+        rew_airTime = torch.sum((self.feet_air_time - 0.5) * first_contact, dim=1) # reward only on first contact with the ground
+        rew_airTime *= torch.norm(self.commands[:, :2], dim=1) > 0.1 #no reward for zero command
+        rew_airTime *= self.rew_scales["air_time"]
+        self.feet_air_time *= ~self.contact_filt
 
         # total reward
         self.rew_buf = (
@@ -558,8 +608,9 @@ class AnymalTerrainTask(RLTask):
             + rew_torque
             + rew_joint_acc
             + rew_action_rate
-            + rew_hip
-            + rew_fallen_over
+            + rew_dof_pos_limits
+            + rew_collision
+            + rew_airTime
         )
         self.rew_buf = torch.clip(self.rew_buf, min=0.0, max=None)
 
@@ -597,8 +648,8 @@ class AnymalTerrainTask(RLTask):
             dim=-1,
         )
 
-    def get_ground_heights_below_knees(self):
-        points = self.knee_pos.reshape(self.num_envs, 4, 3)
+    def get_ground_heights_below_thigh(self):
+        points = self.thigh_pos.reshape(self.num_envs, 4, 3)
         points += self.terrain.border_size
         points = (points / self.terrain.horizontal_scale).long()
         px = points[:, :, 0].view(-1)

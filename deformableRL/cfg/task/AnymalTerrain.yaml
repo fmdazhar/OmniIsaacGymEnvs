@@ -70,6 +70,9 @@ env:
 
   learn:
     # rewards
+    baseHeightTarget : 0.52
+    softDofPositionLimit: 0.9
+    # reward weights
     terminalReward: 0.0
     linearVelocityXYRewardScale: 1.0
     linearVelocityZRewardScale: -4.0

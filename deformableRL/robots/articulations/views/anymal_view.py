@@ -43,9 +43,23 @@ class AnymalView(ArticulationView):
         """[summary]"""
 
         super().__init__(prim_paths_expr=prim_paths_expr, name=name, reset_xform_properties=False)
-        self._knees = RigidPrimView(
+        self._thigh = RigidPrimView(
             prim_paths_expr="/World/envs/.*/anymal/.*_THIGH",
-            name="knees_view",
+            name="thigh_view",
+            reset_xform_properties=False,
+            track_contact_forces=track_contact_forces,
+            prepare_contact_sensors=prepare_contact_sensors,
+        )
+        self._shank = RigidPrimView(
+            prim_paths_expr="/World/envs/.*/anymal/.*_SHANK",
+            name="shank_view",
+            reset_xform_properties=False,
+            track_contact_forces=track_contact_forces,
+            prepare_contact_sensors=prepare_contact_sensors,
+        )
+        self._foot = RigidPrimView(
+            prim_paths_expr="/World/envs/.*/anymal/.*_FOOT",
+            name="foot_view",
             reset_xform_properties=False,
             track_contact_forces=track_contact_forces,
             prepare_contact_sensors=prepare_contact_sensors,
@@ -58,19 +72,19 @@ class AnymalView(ArticulationView):
             prepare_contact_sensors=prepare_contact_sensors,
         )
 
-    def get_knee_transforms(self):
-        return self._knees.get_world_poses()
+    def get_thigh_transforms(self):
+        return self._thigh.get_world_poses()
 
-    def is_knee_below_threshold(self, threshold, ground_heights=None):
-        knee_pos, _ = self._knees.get_world_poses()
-        knee_heights = knee_pos.view((-1, 4, 3))[:, :, 2]
+    def is_thigh_below_threshold(self, threshold, ground_heights=None):
+        thigh_pos, _ = self._thigh.get_world_poses()
+        thigh_heights = thigh_pos.view((-1, 4, 3))[:, :, 2]
         if ground_heights is not None:
-            knee_heights -= ground_heights
+            thigh_heights -= ground_heights
         return (
-            (knee_heights[:, 0] < threshold)
-            | (knee_heights[:, 1] < threshold)
-            | (knee_heights[:, 2] < threshold)
-            | (knee_heights[:, 3] < threshold)
+            (thigh_heights[:, 0] < threshold)
+            | (thigh_heights[:, 1] < threshold)
+            | (thigh_heights[:, 2] < threshold)
+            | (thigh_heights[:, 3] < threshold)
         )
 
     def is_base_below_threshold(self, threshold, ground_heights):
