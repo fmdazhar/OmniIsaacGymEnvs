@@ -46,6 +46,7 @@ class AnymalTerrainTask(RLTask):
     def __init__(self, name, sim_config, env, offset=None) -> None:
 
         self.height_samples = None
+        self.depression_details = None
         self.custom_origins = False
         self.init_done = False
         self._env_spacing = 0.0
@@ -76,10 +77,13 @@ class AnymalTerrainTask(RLTask):
             "base_height": torch_zeros(),
             "air_time": torch_zeros(),
             "collision": torch_zeros(),
-            "stumble": torch_zeros(),
             "action_rate": torch_zeros(),
             "hip": torch_zeros(),
+            "fallen_over": torch_zeros(),
+            "dof_pos_limits": torch_zeros(),
+            "termination": torch_zeros(),
         }
+
         return
 
     def update_config(self, sim_config):
@@ -112,6 +116,9 @@ class AnymalTerrainTask(RLTask):
         self.rew_scales["action_rate"] = self._task_cfg["env"]["learn"]["actionRateRewardScale"]
         self.rew_scales["hip"] = self._task_cfg["env"]["learn"]["hipRewardScale"]
         self.rew_scales["fallen_over"] = self._task_cfg["env"]["learn"]["fallenOverRewardScale"]
+        self.rew_scales["collision"] = self._task_cfg["env"]["learn"]["collisionRewardScale"]
+        self.rew_scales["air_time"] = self._task_cfg["env"]["learn"]["airTimeRewardScale"]
+        self.rew_scales["dof_pos_limits"] = self._task_cfg["env"]["learn"]["dofPosLimitsRewardScale"]
 
         # command ranges
         self.vel_curriculum = self._task_cfg["env"]["terrain"]["VelocityCurriculum"]
@@ -160,6 +167,8 @@ class AnymalTerrainTask(RLTask):
         ]
 
         self._task_cfg["sim"]["add_ground_plane"] = False
+
+        self._particle_cfg = self._task_cfg["env"]["particles"]
 
     def _get_noise_scale_vec(self, cfg):
         noise_vec = torch.zeros_like(self.obs_buf[0])
@@ -231,6 +240,9 @@ class AnymalTerrainTask(RLTask):
         self._anymals = AnymalView(
             prim_paths_expr="/World/envs/.*/anymal", name="anymal_view", track_contact_forces=True
         )
+        if self._particle_cfg["enabled"]:
+            self.create_particle_instancer()
+            scene.add(self._particle_system)
         scene.add(self._anymals)
         scene.add(self._anymals._thigh)
         scene.add(self._anymals._shank)
@@ -252,9 +264,16 @@ class AnymalTerrainTask(RLTask):
             scene.remove_object("foot_view", registry_only=True)
         if scene.object_exists("base_view"):
             scene.remove_object("base_view", registry_only=True)
+        if scene.object_exists("particle_view"):
+            scene.remove_object("particle_view", registry_only=True)
+
         self._anymals = AnymalView(
             prim_paths_expr="/World/envs/.*/anymal", name="anymal_view", track_contact_forces=True
         )
+
+        if self._particle_cfg["enabled"]:
+            self.create_particle_system()
+            scene.add(self._particle_systems)
         scene.add(self._anymals)
         scene.add(self._anymals._thigh)
         scene.add(self._anymals._shank)
@@ -272,6 +291,8 @@ class AnymalTerrainTask(RLTask):
             0, self._task_cfg["env"]["terrain"]["numTerrains"], (self.num_envs,), device=self.device
         )
         self._create_trimesh(create_mesh=create_mesh)
+        if self._particle_cfg["enabled"]:
+            self.depression_details = self.terrain.depression_details
         self.terrain_origins = torch.from_numpy(self.terrain.env_origins).to(self.device).to(torch.float)
 
     def get_anymal(self):
@@ -549,10 +570,7 @@ class AnymalTerrainTask(RLTask):
 
         # torque penalty
         rew_torque = torch.sum(torch.square(self.torques), dim=1) * self.rew_scales["torque"]
-
-        # torque energy penalty
-        rew_energy = torch.sum(torch.multiply(self.torques, self.dof_vel), dim=1) * self.rew_scales["torque"]
-
+        
         # Penalize dof velocities
         rew_dof_vel = torch.sum(torch.square(self.dof_vel), dim=1) * self.rew_scales["joint_vel"]
 
@@ -567,10 +585,7 @@ class AnymalTerrainTask(RLTask):
         shank_contact = (torch.norm(self.shank_contact_forces, dim=-1) > 0.1)
         total_contact = thigh_contact + shank_contact
         rew_collision = torch.sum(total_contact, dim=-1) * self.rew_scales["collision"]
-                           
-        # fallen over penalty
-        rew_fallen_over = self.has_fallen * self.rew_scales["fallen_over"]
-
+            
         # action rate penalty
         rew_action_rate = (
             torch.sum(torch.square(self.last_actions - self.actions), dim=1) * self.rew_scales["action_rate"]
@@ -579,12 +594,7 @@ class AnymalTerrainTask(RLTask):
         # Penalize dof positions too close to the limit
         out_of_limits = -(self.dof_pos - self.anymal_dof_soft_lower_limits).clip(max=0.)  # lower limit
         out_of_limits += (self.dof_pos - self.anymal_dof_soft_upper_limits).clip(min=0.)
-        rew_dof_pos_limits = torch.sum(out_of_limits, dim=1)
-
-        # cosmetic penalty for hip motion
-        rew_hip = (
-            torch.sum(torch.abs(self.dof_pos[:, 0:4] - self.default_dof_pos[:, 0:4]), dim=1) * self.rew_scales["hip"]
-        )
+        rew_dof_pos_limits = torch.sum(out_of_limits, dim=1) * self.rew_scales["dof_pos_limits"]
 
         # Increment feet_air_time for each step the foot is not in contact
         contact = self.feet_contact_forces[:, self.feet_indices, 2] > 1.0  # Placeholder for contact detection, adjust threshold as needed
@@ -596,6 +606,14 @@ class AnymalTerrainTask(RLTask):
         rew_airTime *= torch.norm(self.commands[:, :2], dim=1) > 0.1 #no reward for zero command
         rew_airTime *= self.rew_scales["air_time"]
         self.feet_air_time *= ~self.contact_filt
+
+        # cosmetic penalty for hip motion
+        rew_hip = (
+            torch.sum(torch.abs(self.dof_pos[:, 0:4] - self.default_dof_pos[:, 0:4]), dim=1) * self.rew_scales["hip"]
+        )
+
+        # fallen over penalty
+        rew_fallen_over = self.has_fallen * self.rew_scales["fallen_over"]
 
         # total reward
         self.rew_buf = (
@@ -627,7 +645,10 @@ class AnymalTerrainTask(RLTask):
         self.episode_sums["joint_acc"] += rew_joint_acc
         self.episode_sums["action_rate"] += rew_action_rate
         self.episode_sums["base_height"] += rew_base_height
-        self.episode_sums["hip"] += rew_hip
+        self.episode_sums["dof_pos_limits"] += rew_dof_pos_limits
+        self.episode_sums["collision"] += rew_collision
+        self.episode_sums["air_time"] += rew_airTime
+
 
     def get_observations(self):
         self.measured_heights = self.get_heights()
@@ -724,3 +745,186 @@ def get_axis_params(value, axis_idx, x_value=0.0, dtype=float, n_dims=3):
     params = np.where(zs == 1.0, value, zs)
     params[0] = x_value
     return list(params.astype(dtype))
+
+
+def create_particle_system(self):
+    # Define paths
+    default_prim_path = "/World"
+    default_prim_path = Sdf.Path(default_prim_path)
+    particle_system_path = default_prim_path.AppendChild("particleSystem")
+
+    # Create the particle system
+    self._particle_system = ParticleSystem(
+        prim_path=particle_system_path,
+        particle_system_enabled=True,
+        simulation_owner="/physicsScene",
+        rest_offset=self._particle_cfg[system1][particle_system_rest_offset],
+        contact_offset=self._particle_cfg[system1][particle_system_contact_offset],
+        solid_rest_offset=self._particle_cfg[system1][particle_system_solid_rest_offset],
+        particle_contact_offset=self._particle_cfg[system1][particle_system_particle_contact_offset],
+        max_velocity=self._particle_cfg[system1][particle_system_max_velocity],
+        max_neighborhood=self._particle_cfg[system1][particle_system_max_neighborhood],
+        solver_position_iteration_count=self._particle_cfg[system1][particle_system_solver_position_iteration_count],
+        enable_ccd=self._particle_cfg[system1][particle_system_enable_ccd],
+        # max_depenetration_velocity=self._particle_cfg[particle_system_max_depenetration_velocity],
+    )
+
+    # Create the particle prototype
+    self.create_pbd_material()
+
+    # if self._particle_cfg["use_mesh_sampler"]:
+    #     # Create particles from mesh
+    #     self.create_particles_from_mesh()
+    # else:
+    #     # Create particle grid
+    self.create_particle_grid()
+        
+def create_pbd_material(self):
+    ps = PhysxSchema.PhysxParticleSystem.Get(self.stage, Sdf.Path("/World/particleSystem"))
+    # Setting up a material density, will be used by both ref & cand because of shared particle system
+    pbd_material_path = Sdf.Path("/World/pbdmaterial")
+    particleUtils.add_pbd_particle_material(
+        self.stage,
+        pbd_material_path,
+        friction=self.config.pbd_material_friction,
+        particle_friction_scale=self.config.pbd_material_particle_friction_scale,
+        adhesion=self.config.pbd_material_adhesion,
+        particle_adhesion_scale=self.config.pbd_material_particle_adhesion_scale,
+        adhesion_offset_scale=self.config.pbd_material_adhesion_offset_scale,
+        density=self.config.pbd_material_density,
+    )
+    physicsUtils.add_physics_material_to_prim(self.stage, ps.GetPrim(), pbd_material_path)
+
+def create_particle_grid(self):
+
+    for index, depression in enumerate(self.depressions):
+        # Define paths
+        default_prim_path = "/World"
+        default_prim_path = Sdf.Path(default_prim_path)
+        particle_system_path = default_prim_path.AppendChild("particleSystem")
+
+        # Define the position and size of the particle grid from config
+        x_position, y_position, z_position, size , depth, type = depression
+
+        lower = Gf.Vec3f(x_position, y_position, z_position)
+
+        solid_rest_offset = self._particle_cfg[system1][particle_system_solid_rest_offset]
+        particle_spacing = 2.5 * solid_rest_offset
+
+        num_samples_x = int(size / particle_spacing) + 1
+        num_samples_y = int(size / particle_spacing) + 1
+        num_samples_z = int(depth / particle_spacing) + 1
+
+        # Jitter factor from config (as a fraction of particle_spacing)
+        jitter_factor = self._particle_cfg[system1][particle_grid_jitter_factor] * particle_spacing
+
+        position = [Gf.Vec3f(0.0)] * num_samples_x * num_samples_y * num_samples_z
+        uniform_particle_velocity = Gf.Vec3f(0.0)
+        ind = 0
+        x = lower[0]
+        y = lower[1]
+        z = lower[2]
+        for i in range(num_samples_x):
+            for j in range(num_samples_y):
+                for k in range(num_samples_z):
+                    jitter_x = random.uniform(-jitter_factor, jitter_factor)
+                    jitter_y = random.uniform(-jitter_factor, jitter_factor)
+                    jitter_z = random.uniform(-jitter_factor, jitter_factor)
+
+                    # Apply jitter to the position
+                    jittered_x = x + jitter_x
+                    jittered_y = y + jitter_y
+                    jittered_z = z + jitter_z
+                    position[ind] = Gf.Vec3f(jittered_x, jittered_y, jittered_z)
+                    ind += 1
+                    z = z + particle_spacing
+                z = lower[2]
+                y = y + particle_spacing
+            y = lower[1]
+            x = x + particle_spacing
+        positions, velocities = (position, [uniform_particle_velocity] * len(position))
+        widths = [2 * solid_rest_offset * 0.5] * len(position)
+
+        # Define particle point instancer path
+        particle_point_instancer_path = particle_system_path.AppendChild("particles_grid_{}".format(index))
+
+        # Add the particle set to the point instancer
+        particleUtils.add_physx_particleset_pointinstancer(
+            self.stage,
+            particle_point_instancer_path,
+            Vt.Vec3fArray(positions),
+            Vt.Vec3fArray(velocities),
+            particle_system_path,
+            self_collision=self._particle_cfg[system1][particle_grid_self_collision],
+            fluid=self._particle_cfg[system1][particle_grid_fluid],
+            particle_group=self._particle_cfg[system1][particle_grid_particle_group],
+            particle_mass=self._particle_cfg[system1][particle_grid_particle_mass],
+            density=self._particle_cfg[system1][particle_grid_density],
+        )
+
+        # Configure particle prototype
+        particle_prototype_sphere = UsdGeom.Sphere.Get(
+            self.stage, particle_point_instancer_path.AppendChild("particlePrototype0")
+        )
+        particle_prototype_sphere.CreateRadiusAttr().Set(solid_rest_offset)
+
+def create_particles_from_mesh(self):
+    """
+    Creates particles from the specified mesh.
+    
+    Args:
+
+    """
+    default_prim_path = "/World"
+    particle_system_path = default_prim_path + "/particleSystem"
+    particle_set_path = default_prim_path + "/particles"
+    # create a cube mesh that shall be sampled:
+    cube_mesh_path = Sdf.Path(omni.usd.get_stage_next_free_path(self.stage, "/Cube", True))
+    cube_resolution = (
+        2  # resolution can be low because we'll sample the surface / volume only irrespective of the vertex count
+    )
+    omni.kit.commands.execute(
+        "CreateMeshPrimWithDefaultXform", prim_type="Cube", u_patches=cube_resolution, v_patches=cube_resolution, select_new_prim=False
+    )        
+    cube_mesh = UsdGeom.Mesh.Get(self.stage, Sdf.Path(cube_mesh_path))
+
+    physicsUtils.setup_transform_as_scale_orient_translate(cube_mesh)
+
+    physicsUtils.set_or_add_translate_op(
+    cube_mesh, 
+    Gf.Vec3f(
+        self._particle_cfg[system1][particle_x_position], 
+        self._particle_cfg[system1][particle_y_position], 
+        self._particle_cfg[system1][particle_z_position]
+        )
+    )
+    physicsUtils.set_or_add_scale_op(
+        cube_mesh, 
+        Gf.Vec3f(
+            self._particle_cfg[system1][particle_scale_x], 
+            self._particle_cfg[system1][particle_scale_y], 
+            self._particle_cfg[system1][particle_scale_z]
+        )
+    )
+    
+    # Calculate sampling distance based on particle system parameters
+    solid_rest_offset =  self._particle_cfg[system1][particle_system_solid_rest_offset]
+    particle_sampler_distance = 2.5 * solid_rest_offset
+
+    # Apply particle sampling on the mesh
+    sampling_api = PhysxSchema.PhysxParticleSamplingAPI.Apply(cube_mesh.GetPrim())
+    # sampling_api.CreateSamplingDistanceAttr().Set(particle_sampler_distance)
+    sampling_api.CreateMaxSamplesAttr().Set(5e5)
+    sampling_api.CreateVolumeAttr().Set(True)  # Set to True if sampling volume, False for surface
+
+    cube_mesh.CreateVisibilityAttr("invisible")
+
+    # create particle set
+    points = UsdGeom.Points.Define(self.stage, particle_set_path)
+    points.CreateDisplayColorAttr().Set(Vt.Vec3fArray([Gf.Vec3f(71.0 / 255.0, 125.0 / 255.0, 1.0)]))
+    particleUtils.configure_particle_set(points.GetPrim(), particle_system_path, 
+    self._particle_cfg[system1][particle_grid_self_collision], self._particle_cfg[system1][particle_grid_fluid], 
+    self._particle_cfg[system1][particle_grid_particle_group], self._particle_cfg[system1][particle_grid_particle_mass], self._particle_cfg[system1][particle_grid_density])
+
+    # reference the particle set in the sampling api
+    sampling_api.CreateParticlesRel().AddTarget(particle_set_path)

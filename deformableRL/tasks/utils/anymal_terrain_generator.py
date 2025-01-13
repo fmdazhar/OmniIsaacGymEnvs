@@ -58,8 +58,10 @@ class Terrain:
         self.tot_rows = int(self.env_rows * self.length_per_env_pixels) + 2 * self.border
 
         self.height_field_raw = np.zeros((self.tot_rows, self.tot_cols), dtype=np.int16)
+        self.depression_details = []  # This will store the starting positions and thickness of all depressions
+
         if cfg["curriculum"]:
-            self.curiculum(num_robots, num_terrains=self.env_cols, num_levels=self.env_rows)
+            self.deformable_curiculum(num_robots, num_terrains=self.env_cols, num_levels=self.env_rows)
         else:
             # self.randomized_terrain()
             self.full_flat_terrain()
@@ -213,3 +215,60 @@ class Terrain:
                 y2 = int((self.env_width / 2.0 + 1) / self.horizontal_scale)
                 env_origin_z = np.max(terrain.height_field_raw[x1:x2, y1:y2]) * self.vertical_scale
                 self.env_origins[i, j] = [env_origin_x, env_origin_y, env_origin_z]
+
+
+    def deformable_curiculum(self, num_robots, num_terrains, num_levels):
+        num_robots_per_map = int(num_robots / num_terrains)
+        left_over = num_robots % num_terrains
+        idx = 0
+        for j in range(num_terrains):
+            for i in range(num_levels):
+                terrain = SubTerrain(
+                    "terrain",
+                    width=self.width_per_env_pixels,
+                    length=self.width_per_env_pixels,
+                    vertical_scale=self.vertical_scale,
+                    horizontal_scale=self.horizontal_scale,
+                )
+                choice = i / num_levels
+                # Flag to check if the terrain has a depression
+                depression_flag = False
+                # Initialize depression parameters to None
+                depression_depth = None
+                depression_size = None
+                depression_type = None
+
+                if choice < self.proportions[0]:
+                    flat_terrain(terrain, height_meters=0)
+                elif choice < self.proportions[1]:
+                    depression_depth = -0.10
+                    depression_size = 6
+                    depression_type = 1
+                    central_depression_terrain(terrain, depression_depth=depression_depth,platform_height=0, depression_size=depression_size)
+                else:
+                    depression_depth = -0.15
+                    depression_type = 2
+                    depression_size = 6
+                    central_depression_terrain(terrain, depression_depth=depression_depth,platform_height=0, depression_size=depression_size)
+
+                # Heightfield coordinate system
+                start_x = self.border + i * self.length_per_env_pixels
+                end_x = self.border + (i + 1) * self.length_per_env_pixels
+                start_y = self.border + j * self.width_per_env_pixels
+                end_y = self.border + (j + 1) * self.width_per_env_pixels
+                self.height_field_raw[start_x:end_x, start_y:end_y] = terrain.height_field_raw
+
+                robots_in_map = num_robots_per_map
+                if j < left_over:
+                    robots_in_map += 1
+
+                env_origin_x = (i + 0.5) * self.env_length
+                env_origin_y = (j + 0.5) * self.env_width
+                x1 = int((self.env_length / 2.0 - 1) / self.horizontal_scale)
+                x2 = int((self.env_length / 2.0 + 1) / self.horizontal_scale)
+                y1 = int((self.env_width / 2.0 - 1) / self.horizontal_scale)
+                y2 = int((self.env_width / 2.0 + 1) / self.horizontal_scale)
+                env_origin_z = np.max(terrain.height_field_raw[x1:x2, y1:y2]) * self.vertical_scale
+                self.env_origins[i, j] = [env_origin_x, env_origin_y, env_origin_z]
+                if depression_flag:
+                    self.depression_details.append((env_origin_x - depression_size / 2.0, env_origin_y - depression_size / 2.0, 0, depression_size, depression_depth, depression_type))

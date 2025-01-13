@@ -25,6 +25,65 @@ env:
     # tri mesh only:
     slopeTreshold: 0.5
 
+  particles:
+    enabled: True
+    use_mesh_sampler: False
+    system1:
+      pbd_material_friction: 0.8                    # Friction value for particles
+      pbd_material_particle_friction_scale: 0.2     # Scale factor for particle-particle friction
+      pbd_material_adhesion: 0.00001                # Adhesion coefficient for particles
+      pbd_material_particle_adhesion_scale: 10000.0 # Scale factor for particle adhesion strength
+      pbd_material_adhesion_offset_scale: 1.2       # Offset scale for adhesion calculations
+      pbd_material_density: 1500                    # Density of particle material (kg/m³)
+
+      # Particle system parameters
+      particle_system_rest_offset: 0.02                 # Rest offset for particle collision
+      particle_system_solid_rest_offset: 0.015          # Solid rest offset (for rigid particle collision)
+      particle_system_contact_offset: 0.02              # Contact offset for particles
+      particle_system_particle_contact_offset: 0.04     # Contact offset specifically between particles
+      particle_system_max_velocity: 100.0               # Maximum allowable particle velocity
+      particle_system_max_neighborhood: 340             # Maximum number of neighboring particles to consider
+      particle_system_solver_position_iteration_count: 64 # Solver iteration count for particle position adjustments
+      particle_system_enable_ccd: True                  # Enable Continuous Collision Detection (CCD) for particles
+      particle_system_max_depenetration_velocity: 100.0 # Maximum velocity for depenetration corrections
+
+      # Particle grid generation parameters
+      particle_grid_jitter_factor: 0.2             # Random jitter factor for particle spacing (as a fraction of particle spacing)
+      particle_grid_self_collision: True           # Enable self-collision within the particle grid
+      particle_grid_fluid: False                   # Set to True if particles should behave like a fluid
+      particle_grid_particle_group: 0              # Group ID for particles, used for grouping behaviors
+      particle_grid_particle_mass: 0.0             # Mass of each particle (can be overridden by density)
+      particle_grid_density: 0.0                   # Density of particles (optional, overrides individual mass)
+      
+    system2:
+      fill: False
+      pbd_material_friction: 0.8                    # Friction value for particles
+      pbd_material_particle_friction_scale: 0.2     # Scale factor for particle-particle friction
+      pbd_material_adhesion: 0.00001                # Adhesion coefficient for particles
+      pbd_material_particle_adhesion_scale: 10000.0 # Scale factor for particle adhesion strength
+      pbd_material_adhesion_offset_scale: 1.2       # Offset scale for adhesion calculations
+      pbd_material_density: 1500                    # Density of particle material (kg/m³)
+
+      # Particle system parameters
+      particle_system_rest_offset: 0.02                 # Rest offset for particle collision
+      particle_system_solid_rest_offset: 0.015          # Solid rest offset (for rigid particle collision)
+      particle_system_contact_offset: 0.02              # Contact offset for particles
+      particle_system_particle_contact_offset: 0.04     # Contact offset specifically between particles
+      particle_system_max_velocity: 100.0               # Maximum allowable particle velocity
+      particle_system_max_neighborhood: 340             # Maximum number of neighboring particles to consider
+      particle_system_solver_position_iteration_count: 64 # Solver iteration count for particle position adjustments
+      particle_system_enable_ccd: True                  # Enable Continuous Collision Detection (CCD) for particles
+      particle_system_max_depenetration_velocity: 100.0 # Maximum velocity for depenetration corrections
+
+      # Particle grid generation parameters
+      particle_grid_jitter_factor: 0.2             # Random jitter factor for particle spacing (as a fraction of particle spacing)
+      particle_grid_self_collision: True           # Enable self-collision within the particle grid
+      particle_grid_fluid: False                   # Set to True if particles should behave like a fluid
+      particle_grid_particle_group: 0              # Group ID for particles, used for grouping behaviors
+      particle_grid_particle_mass: 0.0             # Mass of each particle (can be overridden by density)
+      particle_grid_density: 0.0                   # Density of particles (optional, overrides individual mass)
+
+
   baseInitState:
     pos: [0.0, 0.0, 0.62] # x,y,z [m]
     rot: [1.0, 0.0, 0.0, 0.0] # w,x,y,z [quat]
@@ -75,15 +134,18 @@ env:
     # reward weights
     terminalReward: 0.0
     linearVelocityXYRewardScale: 1.0
-    linearVelocityZRewardScale: -4.0
+    linearVelocityZRewardScale: -2.0
     angularVelocityXYRewardScale: -0.05
     angularVelocityZRewardScale: 0.5
-    orientationRewardScale: -0.
-    torqueRewardScale: -0.00002 
+    orientationRewardScale: -5.
+    torqueRewardScale: -0.0001
     jointAccRewardScale: -0.0005
-    baseHeightRewardScale: -0.0
+    baseHeightRewardScale: -30.
     actionRateRewardScale: -0.01
     fallenOverRewardScale: -1.0
+    airTimeRewardScale: 1.0
+    collisionRewardScale : -1.0
+    dofPosLimitsRewardScale : -10.0
     # cosmetics
     hipRewardScale: -0. #25
 
