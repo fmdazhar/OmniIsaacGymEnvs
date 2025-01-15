@@ -245,11 +245,13 @@ class Terrain:
                     depression_size = 6
                     depression_type = 1
                     central_depression_terrain(terrain, depression_depth=depression_depth,platform_height=0, depression_size=depression_size)
+                    depression_flag = True
                 else:
                     depression_depth = -0.15
                     depression_type = 2
                     depression_size = 6
                     central_depression_terrain(terrain, depression_depth=depression_depth,platform_height=0, depression_size=depression_size)
+                    depression_flag = True
 
                 # Heightfield coordinate system
                 start_x = self.border + i * self.length_per_env_pixels

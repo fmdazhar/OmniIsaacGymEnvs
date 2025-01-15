@@ -68,7 +68,7 @@ class RLGTrainer:
         runner = Runner(RLGPUAlgoObserver())
         runner.load(self.rlg_config_dict)
         runner.reset()
-
+        
         # dump config dict
         os.makedirs(experiment_dir, exist_ok=True)
         with open(os.path.join(experiment_dir, "config.yaml"), "w") as f:

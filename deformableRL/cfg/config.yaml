@@ -58,7 +58,7 @@ recording_fps: 30
 # directory to save recordings in
 recording_dir: ''
 
-wandb_activate: True
+wandb_activate: False
 wandb_group: ''
 wandb_name: ${train.params.config.name}
 wandb_entity: 'bluewolf'
@@ -77,7 +77,7 @@ warp: False
 defaults:
   - _self_
   - task: AnymalTerrain
-  - train: ${task}SAC
+  - train: ${task}PPO
   - override hydra/job_logging: disabled
 
 # set the directory where the output files get saved
