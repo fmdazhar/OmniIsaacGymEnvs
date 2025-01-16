@@ -94,7 +94,6 @@ class Terrain:
             )
 
             # Call the flat_terrain function from terrain_utils
-            # central_depression_terrain(terrain, depression_depth = -0.1, platform_height=0, depression_size=6)
             flat_terrain(terrain, height_meters=height_meters)
 
             # Copy the new flat terrain into our global height_field_raw

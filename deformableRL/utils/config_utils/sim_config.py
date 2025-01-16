@@ -204,8 +204,8 @@ class SimConfig:
 
         self.task_config["renderingInterval"] = max(round((1/physics_dt) / (1/rendering_dt)), 1)
 
-        # we always set rendering dt to be the same as physics dt, stepping is taken care of in VecEnvRLGames
-        self.sim_params["rendering_dt"] = physics_dt
+        # # we always set rendering dt to be the same as physics dt, stepping is taken care of in VecEnvRLGames
+        # self.sim_params["rendering_dt"] = physics_dt
 
     @property
     def sim_params(self):
