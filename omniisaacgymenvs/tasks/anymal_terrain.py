@@ -57,7 +57,6 @@ class AnymalTerrainTask(RLTask):
         self._env_spacing = 0.0
         self.update_config(sim_config)
 
-
         self._num_actions = 12
         self._num_proprio = 48 #188 #3 + 3 + 3 + 3 + 12 + 12 + 140 + 12
         self._num_privileged_observations = None
@@ -83,29 +82,22 @@ class AnymalTerrainTask(RLTask):
         if self.measure_heights:
             self.height_points = self.init_height_points()
         self.measured_heights = None
+        self.debug_heights = False
+
+        # Initialize dictionaries to track created particle systems and materials
+        self.created_particle_systems = {}
+        self.created_materials = {}
+        self.particle_instancers_by_level = {}
+
+        self.total_particles = 0    # Initialize a counter for total particles
 
         # joint positions offsets
         self.default_dof_pos = torch.zeros(
             (self.num_envs, 12), dtype=torch.float, device=self.device, requires_grad=False
         )
 
-        # reward episode sums
-        torch_zeros = lambda: torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
-        self.episode_sums = {
-            "lin_vel_xy": torch_zeros(),
-            "lin_vel_z": torch_zeros(),
-            "ang_vel_z": torch_zeros(),
-            "ang_vel_xy": torch_zeros(),
-            "orient": torch_zeros(),
-            "torques": torch_zeros(),
-            "joint_acc": torch_zeros(),
-            "base_height": torch_zeros(),
-            "air_time": torch_zeros(),
-            "collision": torch_zeros(),
-            "stumble": torch_zeros(),
-            "action_rate": torch_zeros(),
-            "hip": torch_zeros(),
-        }
+
+
         return
 
     def update_config(self, sim_config):
@@ -122,25 +114,21 @@ class AnymalTerrainTask(RLTask):
         self.height_meas_scale = self._task_cfg["env"]["learn"]["heightMeasurementScale"]
         self.action_scale = self._task_cfg["env"]["control"]["actionScale"]
 
+        # reward params
+        self.base_height_target = self._task_cfg["env"]["learn"]["baseHeightTarget"]
+        self.soft_dof_pos_limit = self._task_cfg["env"]["learn"]["softDofPositionLimit"]
+        
         # reward scales
-        self.rew_scales = {}
-        self.rew_scales["termination"] = self._task_cfg["env"]["learn"]["terminalReward"]
-        self.rew_scales["lin_vel_xy"] = self._task_cfg["env"]["learn"]["linearVelocityXYRewardScale"]
-        self.rew_scales["lin_vel_z"] = self._task_cfg["env"]["learn"]["linearVelocityZRewardScale"]
-        self.rew_scales["ang_vel_z"] = self._task_cfg["env"]["learn"]["angularVelocityZRewardScale"]
-        self.rew_scales["ang_vel_xy"] = self._task_cfg["env"]["learn"]["angularVelocityXYRewardScale"]
-        self.rew_scales["orient"] = self._task_cfg["env"]["learn"]["orientationRewardScale"]
-        self.rew_scales["torque"] = self._task_cfg["env"]["learn"]["torqueRewardScale"]
-        self.rew_scales["joint_acc"] = self._task_cfg["env"]["learn"]["jointAccRewardScale"]
-        self.rew_scales["base_height"] = self._task_cfg["env"]["learn"]["baseHeightRewardScale"]
-        self.rew_scales["action_rate"] = self._task_cfg["env"]["learn"]["actionRateRewardScale"]
-        self.rew_scales["hip"] = self._task_cfg["env"]["learn"]["hipRewardScale"]
-        self.rew_scales["fallen_over"] = self._task_cfg["env"]["learn"]["fallenOverRewardScale"]
+        self.rew_scales = self._task_cfg["env"]["learn"]["scales"]
 
         # command ranges
         self.command_x_range = self._task_cfg["env"]["randomCommandVelocityRanges"]["linear_x"]
         self.command_y_range = self._task_cfg["env"]["randomCommandVelocityRanges"]["linear_y"]
         self.command_yaw_range = self._task_cfg["env"]["randomCommandVelocityRanges"]["yaw"]
+        self.limit_vel_x = self._task_cfg["env"]["limitCommandVelocityRanges"]["linear_x"]
+        self.limit_vel_y = self._task_cfg["env"]["limitCommandVelocityRanges"]["linear_y"]
+        self.limit_vel_yaw = self._task_cfg["env"]["limitCommandVelocityRanges"]["yaw"]
+        self.vel_curriculum = self._task_cfg["env"]["terrain"]["VelocityCurriculum"]
 
         # base init state
         pos = self._task_cfg["env"]["baseInitState"]["pos"]
@@ -174,10 +162,7 @@ class AnymalTerrainTask(RLTask):
         self.measure_heights = self._task_cfg["env"]["terrain"]["measureHeights"]
 
         self.base_threshold = 0.2
-        self.knee_threshold = 0.1
-
-        for key in self.rew_scales.keys():
-            self.rew_scales[key] *= self.dt
+        self.thigh_threshold = 0.1
 
         self._num_envs = self._task_cfg["env"]["numEnvs"]
 
@@ -192,6 +177,7 @@ class AnymalTerrainTask(RLTask):
         ]
 
         self._task_cfg["sim"]["add_ground_plane"] = False
+        self._particle_cfg = self._task_cfg["env"]["particles"]
 
     def _get_noise_scale_vec(self, cfg):
 
@@ -208,10 +194,160 @@ class AnymalTerrainTask(RLTask):
         return noise_vec
         
 
+
+    def init_height_points(self):
+        # 1mx1.6m rectangle (without center line)
+        y = 0.1 * torch.tensor(
+            [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5], device=self.device, requires_grad=False
+        )  # 10-50cm on each side
+        x = 0.1 * torch.tensor(
+            [-8, -7, -6, -5, -4, -3, -2, 2, 3, 4, 5, 6, 7, 8], device=self.device, requires_grad=False
+        )  # 20-80cm on each side
+        grid_x, grid_y = torch.meshgrid(x, y, indexing='ij')
+
+        self.num_height_points = grid_x.numel()
+        points = torch.zeros(self.num_envs, self.num_height_points, 3, device=self.device, requires_grad=False)
+        points[:, :, 0] = grid_x.flatten()
+        points[:, :, 1] = grid_y.flatten()
+        return points
+
+    def init_particle_height_points(self):
+        # 1mx1.6m rectangle (without center line)
+        y = 0.1 * torch.tensor(
+            [-7,-6,-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7], device=self.device, requires_grad=False
+        )  # 10-50cm on each side
+        x = 0.1 * torch.tensor(
+            [-10,-9,-8, -7, -6, -5, -4, -3, -2,-1, 0, 1 , 2, 3, 4, 5, 6, 7, 8, 9, 10], device=self.device, requires_grad=False
+        )  # 20-80cm on each side
+        grid_x, grid_y = torch.meshgrid(x, y, indexing='ij')
+
+        self.num_particle_height_points = grid_x.numel()
+        points = torch.zeros(self.num_envs, self.num_particle_height_points, 3, device=self.device, requires_grad=False)
+        points[:, :, 0] = grid_x.flatten()
+        points[:, :, 1] = grid_y.flatten()
+        return points
+
+    def _create_trimesh(self, create_mesh=True):
+        self.terrain = Terrain(self._task_cfg["env"]["terrain"], num_robots=self.num_envs)
+        vertices = self.terrain.vertices
+        triangles = self.terrain.triangles
+        position = torch.tensor([-self.terrain.border_size, -self.terrain.border_size, 0.0])
+        if create_mesh:
+            add_terrain_to_stage(stage=self._stage, vertices=vertices, triangles=triangles, position=position)
+        self.height_samples = (
+            torch.tensor(self.terrain.heightsamples).view(self.terrain.tot_rows, self.terrain.tot_cols).to(self.device)
+        )
+
+    def update_command_curriculum(self, env_ids):
+        """ Implements a curriculum of increasing commands
+
+        Args:
+            env_ids (List[int]): ids of environments being reset
+        """
+        # If the tracking reward is above 80% of the maximum, increase the range of commands
+        if torch.mean(self.episode_sums["lin_vel_xy"][env_ids]) / self.max_episode_length_s > 0.8 * self.rew_scales["lin_vel_xy"]:
+            self.command_x_range[0] = np.clip(self.command_x_range[0] - 0.2, -self.limit_vel_x[0], 0.).item()
+            self.command_x_range[1] = np.clip(self.command_x_range[1] + 0.2, 0., self.limit_vel_x[1]).item()
+
+            # Increase the range of commands for y
+            self.command_y_range[0] = np.clip(self.command_y_range[0] - 0.2, -self.limit_vel_y[0], 0.).item()
+            self.command_y_range[1] = np.clip(self.command_y_range[1] + 0.2, 0., self.limit_vel_y[1]).item()
+        
+        if torch.mean(self.episode_sums["ang_vel_z"][env_ids]) / self.max_episode_length_s > 0.8 * self.rew_scales["ang_vel_z"]:
+        # Increase the range of commands for yaw
+            self.command_yaw_range[0] = np.clip(self.command_yaw_range[0] - 0.2, -self.limit_vel_yaw[0], 0.).item()
+            self.command_yaw_range[1] = np.clip(self.command_yaw_range[1] + 0.2, 0., self.limit_vel_yaw[1]).item()
+
+    def set_up_scene(self, scene) -> None:
+        self._stage = get_current_stage()
+        simulation_context = SimulationContext.instance()
+        simulation_context.get_physics_context().enable_gpu_dynamics(True)
+        simulation_context.get_physics_context().set_broadphase_type("GPU")
+        self.get_terrain()
+        self.get_anymal()
+        super().set_up_scene(scene, collision_filter_global_paths=["/World/terrain"])
+        self._anymals = A1View(
+            prim_paths_expr="/World/envs/.*/a1", name="a1_view", track_contact_forces=True
+        )
+        if self._particle_cfg["enabled"]:
+            self.create_particle_systems()
+            self.particle_system_view = ParticleSystemView(prim_paths_expr="/World/particleSystem/*")
+            scene.add(self.particle_system_view)
+        scene.add(self._anymals)
+        scene.add(self._anymals._thigh)
+        scene.add(self._anymals._base)
+        scene.add(self._anymals._foot)
+        scene.add(self._anymals._calf)
+
+
+    def initialize_views(self, scene):
+        # initialize terrain variables even if we do not need to re-create the terrain mesh
+        self.get_terrain(create_mesh=False)
+
+        super().initialize_views(scene)
+        if scene.object_exists("a1_view"):
+            scene.remove_object("a1_view", registry_only=True)
+        if scene.object_exists("thigh_view"):
+            scene.remove_object("thigh_view", registry_only=True)
+        if scene.object_exists("base_view"):
+            scene.remove_object("base_view", registry_only=True)
+        if scene.object_exists("foot_view"):
+            scene.remove_object("foot_view", registry_only=True)
+        if scene.object_exists("calf_view"):
+            scene.remove_object("calf_view", registry_only=True)
+        if scene.object_exists("particle_system_view"):
+            scene.remove_object("particle_system_view", registry_only=True)
+        self._anymals = A1(
+            prim_paths_expr="/World/envs/.*/a1", name="a1_view", track_contact_forces=True
+        )
+        if self._particle_cfg["enabled"]:
+            self.create_particle_systems()
+            self.particle_system_view = ParticleSystemView(prim_paths_expr="/World/particleSystem/*")
+            scene.add(self.particle_system_view)  
+        scene.add(self._anymals)
+        scene.add(self._anymals._thigh)
+        scene.add(self._anymals._base)
+        scene.add(self._anymals._foot)
+        scene.add(self._anymals._calf)
+
+    def get_terrain(self, create_mesh=True):
+        self.env_origins = torch.zeros((self.num_envs, 3), device=self.device, requires_grad=False)
+        
+        if not self.curriculum:
+            self._task_cfg["env"]["terrain"]["maxInitMapLevel"] = self.terrain.env_rows - 1
+
+        self.terrain_levels = torch.randint(0, self._task_cfg["env"]["terrain"]["maxInitMapLevel"] + 1, (self.num_envs,), device=self.device, dtype=torch.long)
+
+        self._create_trimesh(create_mesh=create_mesh)
+        self.terrain_origins = torch.from_numpy(self.terrain.env_origins).to(self.device).to(torch.float)
+        self.terrain_details = torch.tensor(self.terrain.terrain_details, dtype=torch.float, device=self.device)
+
+    def get_anymal(self):
+        anymal_translation = torch.tensor([0.0, 0.0, 0.42])
+        anymal_orientation = torch.tensor([1.0, 0.0, 0.0, 0.0])
+        anymal = A1(
+            prim_path=self.default_zero_env_path + "/a1",
+            name="a1",
+            translation=anymal_translation,
+            orientation=anymal_orientation,
+        )
+        self._sim_config.apply_articulation_settings(
+            "a1", get_prim_at_path(anymal.prim_path), self._sim_config.parse_actor_config("a1")
+        )
+        anymal.set_a1_properties(self._stage, anymal.prim)
+        anymal.prepare_contacts(self._stage, anymal.prim)
+
+        self.dof_names = anymal.dof_names
+        for i in range(self.num_actions):
+            name = self.dof_names[i]
+            angle = self.named_default_joint_angles[name]
+            self.default_dof_pos[:, i] = angle
+
+
     def _set_mass(self, view, env_ids, distribution="uniform" , operation="additive"):
         """Update material properties for a given asset."""
 
-        masses = self.default_masses
+        masses = self.default_base_masses
         distribution_parameters = self.added_mass_range
         set_masses = view.set_masses
         self.payloads[env_ids] = torch.rand(len(env_ids), dtype=torch.float, device=self.device,
@@ -221,7 +357,7 @@ class AnymalTerrainTask(RLTask):
         print(f"Masses updated: {masses}")
         print(f"default_inertia: {self.default_inertias}")
         # Compute the ratios of the new masses to the default masses.
-        ratios = masses / self.default_masses
+        ratios = masses / self.default_base_masses
         # The default_inertia is scaled by these ratios.
         # Note: The multiplication below assumes broadcasting works correctly for your inertia tensor shape.
         new_inertias = self.default_inertias * ratios.unsqueeze(-1)
@@ -309,7 +445,6 @@ class AnymalTerrainTask(RLTask):
                                                      requires_grad=False).unsqueeze(1) * (
                                                   self.Kd_factor_range[1] - self.Kd_factor_range[0]) + self.Kd_factor_range[0]
 
-
     def set_compliance(self, env_ids=None, device="cpu"):
         # 1. Resolve env_ids properly
         if env_ids is None:
@@ -319,7 +454,7 @@ class AnymalTerrainTask(RLTask):
         
         # 2. Compute stiffness/damping for all envs just once
         deflection = 1.25e-1
-        stiffness = (self.default_total_masses * 9.81) / deflection
+        stiffness = (self.total_masses * 9.81) / deflection
         damping = 0.1 * stiffness
         
         # 3. Zero out stiffness/damping for non-env_ids
@@ -350,107 +485,55 @@ class AnymalTerrainTask(RLTask):
             self._material_apis[i].CreateCompliantContactDampingAttr().Set(float(damping[i]))
 
 
-    def init_height_points(self):
-        # 1mx1.6m rectangle (without center line)
-        y = 0.1 * torch.tensor(
-            [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5], device=self.device, requires_grad=False
-        )  # 10-50cm on each side
-        x = 0.1 * torch.tensor(
-            [-8, -7, -6, -5, -4, -3, -2, 2, 3, 4, 5, 6, 7, 8], device=self.device, requires_grad=False
-        )  # 20-80cm on each side
-        grid_x, grid_y = torch.meshgrid(x, y, indexing='ij')
+    def store_pbd_params(self):
+        """
+        Populates self.pbd_parameters for each env that has a non-zero system_idx.
+        Each row in self.pbd_parameters corresponds to one environment.
+        In this example, we store 8 different PBD material parameters per row:
+        [friction, damping, viscosity, density, surface_tension, cohesion, adhesion, cfl_coefficient].
+        """
+        # Make sure self.pbd_parameters has the right shape:
+        # e.g. self.pbd_parameters = torch.zeros((self.num_envs, 8), device=self.device)
+        self.pbd_parameters[:] = 0.0  # Reset to 0 for all envs first
 
-        self.num_height_points = grid_x.numel()
-        points = torch.zeros(self.num_envs, self.num_height_points, 3, device=self.device, requires_grad=False)
-        points[:, :, 0] = grid_x.flatten()
-        points[:, :, 1] = grid_y.flatten()
-        return points
+        # Grab unique systems in the batch
+        unique_systems = torch.unique(self.system_idx)
 
-    def _create_trimesh(self, create_mesh=True):
-        self.terrain = Terrain(self._task_cfg["env"]["terrain"], num_robots=self.num_envs)
-        vertices = self.terrain.vertices
-        triangles = self.terrain.triangles
-        position = torch.tensor([-self.terrain.border_size, -self.terrain.border_size, 0.0])
-        if create_mesh:
-            add_terrain_to_stage(stage=self._stage, vertices=vertices, triangles=triangles, position=position)
-        self.height_samples = (
-            torch.tensor(self.terrain.heightsamples).view(self.terrain.tot_rows, self.terrain.tot_cols).to(self.device)
-        )
+        for sid in unique_systems:
+            # Skip system_idx <= 0, which we treat as "no system" or invalid system
+            if sid <= 0:
+                continue
 
-    def set_up_scene(self, scene) -> None:
-        self._stage = get_current_stage()
-        self.get_terrain()
-        self.get_anymal()
-        super().set_up_scene(scene, collision_filter_global_paths=["/World/terrain"])
-        self._anymals = A1View(
-            prim_paths_expr="/World/envs/.*/a1", name="a1_view", track_contact_forces=True
-        )
-        scene.add(self._anymals)
-        scene.add(self._anymals._knees)
-        scene.add(self._anymals._base)
-        scene.add(self._anymals._foot)
-        scene.add(self._anymals._shank)
+            # Look up the corresponding "systemX" config in _particle_cfg
+            system_str = f"system{sid.item()}"
+            if system_str not in self._particle_cfg:
+                # If your config doesn't have this key, skip
+                continue
 
+            # Pull out the relevant PBD parameters from the config
+            # (Adjust the defaults and parameter names to match your usage)
+            mat_cfg = self._particle_cfg[system_str]
+            friction         = mat_cfg.get("pbd_material_friction", 0.0)
+            damping          = mat_cfg.get("pbd_material_damping", 0.0)
+            viscosity        = mat_cfg.get("pbd_material_viscosity", 0.0)
+            density          = mat_cfg.get("pbd_material_density", 0.0)
+            surface_tension  = mat_cfg.get("pbd_material_surface_tension", 0.0)
+            cohesion         = mat_cfg.get("pbd_material_cohesion", 0.0)
+            adhesion         = mat_cfg.get("pbd_material_adhesion", 0.0)
+            cfl_coefficient  = mat_cfg.get("pbd_material_cfl_coefficient", 0.0)
 
-    def initialize_views(self, scene):
-        # initialize terrain variables even if we do not need to re-create the terrain mesh
-        self.get_terrain(create_mesh=False)
+            # Find which environments belong to this system
+            env_ids = torch.nonzero(self.system_idx == sid, as_tuple=True)[0]
 
-        super().initialize_views(scene)
-        if scene.object_exists("a1_view"):
-            scene.remove_object("a1_view", registry_only=True)
-        if scene.object_exists("knees_view"):
-            scene.remove_object("knees_view", registry_only=True)
-        if scene.object_exists("base_view"):
-            scene.remove_object("base_view", registry_only=True)
-        if scene.object_exists("foot_view"):
-            scene.remove_object("foot_view", registry_only=True)
-        if scene.object_exists("shank_view"):
-            scene.remove_object("shank_view", registry_only=True)
-        self._anymals = A1(
-            prim_paths_expr="/World/envs/.*/a1", name="a1_view", track_contact_forces=True
-        )
-        scene.add(self._anymals)
-        scene.add(self._anymals._knees)
-        scene.add(self._anymals._base)
-        scene.add(self._anymals._foot)
-        scene.add(self._anymals._shank)
-
-    def get_terrain(self, create_mesh=True):
-        self.env_origins = torch.zeros((self.num_envs, 3), device=self.device, requires_grad=False)
-        if not self.curriculum:
-            self._task_cfg["env"]["terrain"]["maxInitMapLevel"] = self._task_cfg["env"]["terrain"]["numLevels"] - 1
-        self.terrain_levels = torch.randint(
-            0, self._task_cfg["env"]["terrain"]["maxInitMapLevel"] + 1, (self.num_envs,), device=self.device
-        )
-        self.terrain_types = torch.randint(
-            0, self._task_cfg["env"]["terrain"]["numTerrains"], (self.num_envs,), device=self.device
-        )
-        self._create_trimesh(create_mesh=create_mesh)
-        self.terrain_origins = torch.from_numpy(self.terrain.env_origins).to(self.device).to(torch.float)
-
-    def get_anymal(self):
-        anymal_translation = torch.tensor([0.0, 0.0, 0.42])
-        anymal_orientation = torch.tensor([1.0, 0.0, 0.0, 0.0])
-        anymal = A1(
-            prim_path=self.default_zero_env_path + "/a1",
-            name="a1",
-            translation=anymal_translation,
-            orientation=anymal_orientation,
-        )
-        self._sim_config.apply_articulation_settings(
-            "a1", get_prim_at_path(anymal.prim_path), self._sim_config.parse_actor_config("a1")
-        )
-        anymal.set_a1_properties(self._stage, anymal.prim)
-        anymal.prepare_contacts(self._stage, anymal.prim)
-
-        self.dof_names = anymal.dof_names
-
-        for i in range(self.num_actions):
-            name = self.dof_names[i]
-            angle = self.named_default_joint_angles[name]
-            self.default_dof_pos[:, i] = angle
-
+            # Write the parameters into self.pbd_parameters for these envs
+            self.pbd_parameters[env_ids, 0] = friction
+            self.pbd_parameters[env_ids, 1] = damping
+            self.pbd_parameters[env_ids, 2] = viscosity
+            self.pbd_parameters[env_ids, 3] = density
+            self.pbd_parameters[env_ids, 4] = surface_tension
+            self.pbd_parameters[env_ids, 5] = cohesion
+            self.pbd_parameters[env_ids, 6] = adhesion
+            self.pbd_parameters[env_ids, 7] = cfl_coefficient
 
     def post_reset(self):
         self.base_init_state = torch.tensor(
@@ -488,13 +571,22 @@ class AnymalTerrainTask(RLTask):
         self.last_actions = torch.zeros(
             self.num_envs, self.num_actions, dtype=torch.float, device=self.device, requires_grad=False
         )
-        self.feet_air_time = torch.zeros(self.num_envs, 4, dtype=torch.float, device=self.device, requires_grad=False)
+        feet_names = ["FL", "FR", "RL", "RR"]
+        self.feet_indices = torch.zeros(len(feet_names), dtype=torch.long, device=self.device, requires_grad=False)
+        self.feet_air_time = torch.zeros(self.num_envs, self.feet_indices.shape[0], dtype=torch.float, device=self.device, requires_grad=False)
+        self.contact_filt = torch.zeros(self.num_envs, len(self.feet_indices), dtype=torch.bool, device=self.device, requires_grad=False)
+        self.last_contacts = torch.zeros(self.num_envs, len(self.feet_indices), dtype=torch.bool, device=self.device,
+                                         requires_grad=False)
+
         self.last_dof_vel = torch.zeros((self.num_envs, 12), dtype=torch.float, device=self.device, requires_grad=False)
+        
+        self.compliance = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device, requires_grad=False)
+        self.system_idx = torch.zeros(self.num_envs, dtype=torch.long, device=self.device, requires_grad=False)
+        self.bx_start = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
+        self.bx_end   = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
+        self.by_start = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
+        self.by_end   = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
 
-
-
-        for i in range(self.num_envs):
-            self.env_origins[i] = self.terrain_origins[self.terrain_levels[i], self.terrain_types[i]]
         self.num_dof = self._anymals.num_dof
         self.joint_pos_target = torch.zeros(self.num_envs, self.num_dof, dtype=torch.float,
                                             device=self.device,
@@ -505,8 +597,13 @@ class AnymalTerrainTask(RLTask):
         self.base_quat = torch.zeros((self.num_envs, 4), dtype=torch.float, device=self.device)
         self.base_velocities = torch.zeros((self.num_envs, 6), dtype=torch.float, device=self.device)
 
-        self.knee_pos = torch.zeros((self.num_envs * 4, 3), dtype=torch.float, device=self.device)
-        self.knee_quat = torch.zeros((self.num_envs * 4, 4), dtype=torch.float, device=self.device)
+        self.thigh_pos = torch.zeros((self.num_envs * 4, 3), dtype=torch.float, device=self.device)
+        self.thigh_quat = torch.zeros((self.num_envs * 4, 4), dtype=torch.float, device=self.device)
+        
+        self.thigh_contact_forces = torch.zeros(self.num_envs, 4, 3, dtype=torch.float, device=self.device, requires_grad=False)
+        self.calf_contact_forces = torch.zeros(self.num_envs, 4, 3, dtype=torch.float, device=self.device, requires_grad=False)
+        self.foot_contact_forces = torch.zeros(self.num_envs, 4, 3, dtype=torch.float, device=self.device, requires_grad=False)
+
         # self.torque_limits = self._anymals._physics_view.get_dof_max_forces()[0].tolist()        
         # print(f"Anymal torque limits: {self.torque_limits}")
 
@@ -528,16 +625,25 @@ class AnymalTerrainTask(RLTask):
         self.Kd_factors = torch.ones(self.num_envs, 1, dtype=torch.float, device=self.device, requires_grad=False)
         self.stiffness = torch.zeros(self.num_envs, 1, dtype=torch.float, device=self.device, requires_grad=False)
         self.damping = torch.zeros(self.num_envs, 1, dtype=torch.float, device=self.device, requires_grad=False)
+        self.pbd_parameters = torch.zeros((self.num_envs, 8), device=self.device)
         
-        indices = torch.arange(self._num_envs, dtype=torch.int64, device=self._device)
-        self.reset_idx(indices)
-        self.default_masses = self._anymals._base.get_masses().clone()
-        body_masses = self._anymals.get_body_masses().clone().cpu().numpy()
-        self.default_total_masses = np.sum(body_masses, axis=1)
-        print(f"Default total masses: {self.default_total_masses}")
+        # Get joint limits
+        dof_limits = self._anymals.get_dof_limits()
+        lower_limits = dof_limits[0, :, 0]    
+        upper_limits = dof_limits[0, :, 1]    
+        midpoint = 0.5 * (lower_limits + upper_limits)
+        limit_range = upper_limits - lower_limits
+        soft_lower_limits = midpoint - 0.5 * limit_range * self.soft_dof_pos_limit
+        soft_upper_limits = midpoint + 0.5 * limit_range * self.soft_dof_pos_limit
+        self.a1_dof_lower_limits = dof_limits[0, :, 0].to(device=self._device)
+        self.a1_dof_upper_limits = dof_limits[0, :, 1].to(device=self._device)
+        self.a1_dof_soft_lower_limits = soft_lower_limits.to(device=self._device)
+        self.a1_dof_soft_upper_limits = soft_upper_limits.to(device=self._device)
+
+
+        self.default_base_masses = self._anymals._base.get_masses().clone()
         self.default_inertias = self._anymals._base.get_inertias().clone()
-        self.default_materials = self._anymals._foot._physics_view.get_material_properties().to(self.device)
-        print(f"Default materials: {self.default_materials}")
+        # self.default_materials = self._anymals._foot._physics_view.get_material_properties().to(self.device)
 
         if self._task_cfg["env"]["randomizationRanges"]["randomizeAddedMass"]:
             self._set_mass(self._anymals._base, env_ids=indices)
@@ -545,8 +651,13 @@ class AnymalTerrainTask(RLTask):
             self._set_coms(self._anymals._base, env_ids=indices)
         if self._task_cfg["env"]["randomizationRanges"]["randomizeFriction"]:
             self._set_friction(self._anymals._foot, env_ids=indices)
+
+        body_masses = self._anymals.get_body_masses().clone().cpu().numpy()
+        self.total_masses = np.sum(body_masses, axis=1)
+
+        indices = torch.arange(self._num_envs, dtype=torch.int64, device=self._device)
+        self.reset_idx(indices)
         
-        self.set_compliance(env_ids=torch.tensor([0]))
         self._prepare_reward_function()
 
         self.init_done = True
@@ -560,11 +671,26 @@ class AnymalTerrainTask(RLTask):
         self.dof_pos[env_ids] = self.default_dof_pos[env_ids] * positions_offset
         self.dof_vel[env_ids] = velocities
 
+        if self.vel_curriculum and (self.common_step_counter % self.max_episode_length==0):
+            self.update_command_curriculum(env_ids)
+
         self.update_terrain_level(env_ids)
+
+        ids = torch.nonzero(self.compliance, as_tuple=False).flatten()
+        if len(ids) > 0
+            self.set_compliance(env_ids=ids)
+        self.store_pbd_params()
+
         self.base_pos[env_ids] = self.base_init_state[0:3]
         self.base_pos[env_ids, 0:3] += self.env_origins[env_ids]
         self.base_pos[env_ids, 0:2] += torch_rand_float(-1., 1., (len(env_ids), 2), device=self.device)
-        self.base_quat[env_ids] = self.base_init_state[3:7]
+        rand_yaw = torch_rand_float(0, 2 * np.pi, (len(env_ids), 1), device=self.device)
+        random_quat = torch.cat([
+            torch.cos(rand_yaw / 2),
+            torch.zeros(len(env_ids), 2, device=self.device),
+            torch.sin(rand_yaw / 2)
+        ], dim=1)
+        self.base_quat[env_ids] = random_quat        
         self.base_velocities[env_ids] = self.base_init_state[7:]
 
         self._anymals.set_world_poses(
@@ -592,7 +718,6 @@ class AnymalTerrainTask(RLTask):
         self.feet_air_time[env_ids] = 0.0
         self.progress_buf[env_ids] = 0
         self.reset_buf[env_ids] = 1
-
         self.obs_history_buf[env_ids, :, :] = 0.
 
         # fill extras
@@ -616,7 +741,34 @@ class AnymalTerrainTask(RLTask):
         )
         self.terrain_levels[env_ids] += 1 * (distance > self.terrain.env_length / 2)
         self.terrain_levels[env_ids] = torch.clip(self.terrain_levels[env_ids], 0) % self.terrain.env_rows
-        self.env_origins[env_ids] = self.terrain_origins[self.terrain_levels[env_ids], self.terrain_types[env_ids]]
+        # Sample each environment's terrain block from terrain_details
+        for idx in env_ids:
+            lvl = int(self.terrain_levels[idx].item())
+            candidate_mask = (self.terrain_details[:, 1] == lvl)
+            candidate_terrains = self.terrain_details[candidate_mask]
+            if candidate_terrains.shape[0] == 0:
+                raise ValueError(f"No terrain blocks found with level={lvl}")
+
+            rand_idx = torch.randint(0, candidate_terrains.shape[0], (1,), device=self.device)
+            row = int(candidate_terrains[rand_idx, 2].item())
+            col = int(candidate_terrains[rand_idx, 3].item())
+            is_compliant = int(candidate_terrains[rand_idx, 6].item())
+            system = int(candidate_terrains[rand_idx, 7].item())
+
+            # bounding indices
+            bx0 = candidate_terrains[rand_idx, 10].item()
+            bx1 = candidate_terrains[rand_idx, 11].item()
+            by0 = candidate_terrains[rand_idx, 12].item()
+            by1 = candidate_terrains[rand_idx, 13].item()
+
+            self.bx_start[idx] = bx0
+            self.bx_end[idx]   = bx1
+            self.by_start[idx] = by0
+            self.by_end[idx]   = by1
+
+            self.compliance[idx] = bool(is_compliant)
+            self.system_idx[idx] = system
+            self.env_origins[idx] = self.terrain_origins[row, col]
 
     def refresh_dof_state_tensors(self):
         self.dof_pos = self._anymals.get_joint_positions(clone=False)
@@ -625,7 +777,13 @@ class AnymalTerrainTask(RLTask):
     def refresh_body_state_tensors(self):
         self.base_pos, self.base_quat = self._anymals.get_world_poses(clone=False)
         self.base_velocities = self._anymals.get_velocities(clone=False)
-        self.knee_pos, self.knee_quat = self._anymals._knees.get_world_poses(clone=False)
+        self.thigh_pos, self.thigh_quat = self._anymals._thigh.get_world_poses(clone=False)
+
+    def refresh_net_contact_force_tensors(self):
+        self.foot_contact_forces = self._anymals._foot.get_net_contact_forces(dt=self.dt,clone=False).view(self._num_envs, 4, 3)
+        self.thigh_contact_forces = self._anymals._thigh.get_net_contact_forces(dt=self.dt,clone=False).view(self._num_envs, 4, 3)
+        self.shank_contact_forces = self._anymals._shank.get_net_contact_forces(dt=self.dt,clone=False).view(self._num_envs, 4, 3)
+
 
     def pre_physics_step(self, actions):
         if not self.world.is_playing():
@@ -652,6 +810,8 @@ class AnymalTerrainTask(RLTask):
 
             self.refresh_dof_state_tensors()
             self.refresh_body_state_tensors()
+            self.refresh_net_contact_force_tensors()
+
 
             self.common_step_counter += 1
             if self.common_step_counter % self.push_interval == 0:
@@ -666,10 +826,8 @@ class AnymalTerrainTask(RLTask):
             self.commands[:, 2] = torch.clip(0.5 * wrap_to_pi(self.commands[:, 3] - heading), -1.0, 1.0)
 
             self.check_termination()
-            self.compute_reward()
-
             self.get_states()
-            self.calculate_metrics()
+            self.compute_reward()
 
             env_ids = self.reset_buf.nonzero(as_tuple=False).flatten()
             if len(env_ids) > 0:
@@ -677,8 +835,6 @@ class AnymalTerrainTask(RLTask):
 
             self.get_observations()
 
-            self.extras["privileged_obs"] = self.privileged_obs_buf
-            self.extras["obs_history"] = self.obs_history_buf
             self.last_actions[:] = self.actions[:]
             self.last_dof_vel[:] = self.dof_vel[:]
             
@@ -696,15 +852,26 @@ class AnymalTerrainTask(RLTask):
             torch.ones_like(self.timeout_buf),
             torch.zeros_like(self.timeout_buf),
         )
-        knee_contact = (
-            torch.norm(self._anymals._knees.get_net_contact_forces(clone=False).view(self._num_envs, 4, 3), dim=-1)
+        thigh_contact = (
+            torch.norm(self._anymals._thigh.get_net_contact_forces(clone=False).view(self._num_envs, 4, 3), dim=-1)
             > 1.0
         )
         self.has_fallen = (torch.norm(self._anymals._base.get_net_contact_forces(clone=False), dim=1) > 1.0) | (
-            torch.sum(knee_contact, dim=-1) > 1.0
+            torch.sum(thigh_contact, dim=-1) > 1.0
         )
         self.reset_buf = self.has_fallen.clone()
         self.reset_buf = torch.where(self.timeout_buf.bool(), torch.ones_like(self.reset_buf), self.reset_buf)
+        # Convert each robot's base (x,y) position into heightfield indices
+        hf_x = (self.base_pos[:, 0] + self.terrain.border_size) / self.terrain.horizontal_scale
+        hf_y = (self.base_pos[:, 1] + self.terrain.border_size) / self.terrain.horizontal_scale
+
+        out_of_bounds = (
+            (hf_x < self.bx_start) |
+            (hf_x >= self.bx_end)  |
+            (hf_y < self.by_start) |
+            (hf_y >= self.by_end)
+        )
+        self.reset_buf = torch.where(out_of_bounds, torch.ones_like(self.reset_buf), self.reset_buf)
 
     def _prepare_reward_function(self):
         """ Prepares a list of reward functions, whcih will be called to compute the total reward.
@@ -841,6 +1008,12 @@ class AnymalTerrainTask(RLTask):
         # 3) If measuring heights, compute them and concatenate AFTER the proprio block.
         if self.measure_heights:
             self.measured_heights = self.get_heights()
+            if self.debug_heights:
+                # self._visualize_terrain_heights() 
+                # self._visualize_depression_indices()
+                self.query_top_particle_positions(0)
+                self._visualize_height_scans()
+
             heights = torch.clip(
                 self.base_pos[:, 2].unsqueeze(1) - 0.5 - self.measured_heights,
                 -1.0, 1.0
@@ -919,9 +1092,10 @@ class AnymalTerrainTask(RLTask):
         py = torch.clip(py, 0, self.height_samples.shape[1] - 2)
 
         heights1 = self.height_samples[px, py]
-
-        heights2 = self.height_samples[px + 1, py + 1]
+        heights2 = self.height_samples[px+1, py]
+        heights3 = self.height_samples[px, py+1]
         heights = torch.min(heights1, heights2)
+        heights = torch.min(heights, heights3)
 
         return heights.view(self.num_envs, -1) * self.terrain.vertical_scale
 
@@ -1017,6 +1191,679 @@ class AnymalTerrainTask(RLTask):
     def _reward_feet_contact_forces(self):
         # penalize high contact forces
         return torch.sum((torch.norm(self.contact_forces[:, self.feet_indices, :], dim=-1) -  self.cfg.rewards.max_contact_force).clip(min=0.), dim=1)
+
+    def create_particle_systems(self):
+        for i in range(self.terrain_details.shape[0]):
+            terrain_row = self.terrain_details[i]
+            if not int(terrain_row[5].item()):
+                continue  # Skip terrains without particles
+
+            # Construct the system name from integer system_id
+            system_id = int(row[6])                # e.g. 1, 2, ...
+            system_name = f"system{system_id}"     # "system1", "system2", etc.            material_key = f"pbd_material_{system_name}"
+            particle_system_path = f"/World/particleSystem/{system_name}"
+
+            # **Create Particle System if not already created**
+            if system_name not in self.created_particle_systems:
+                if not self._stage.GetPrimAtPath(particle_system_path).IsValid():
+                    particle_system = ParticleSystem(
+                        prim_path=particle_system_path,
+                        particle_system_enabled=True,
+                        simulation_owner="/physicsScene",
+                        rest_offset=self._particle_cfg[system_name].get("particle_system_rest_offset", None),
+                        contact_offset=self._particle_cfg[system_name].get("particle_system_contact_offset", None),
+                        solid_rest_offset=self._particle_cfg[system_name].get("particle_system_solid_rest_offset", None),
+                        particle_contact_offset=self._particle_cfg[system_name].get("particle_system_particle_contact_offset", None),
+                        max_velocity=self._particle_cfg[system_name].get("particle_system_max_velocity", None),
+                        max_neighborhood=self._particle_cfg[system_name].get("particle_system_max_neighborhood", None),
+                        solver_position_iteration_count=self._particle_cfg[system_name].get("particle_system_solver_position_iteration_count", None),
+                        enable_ccd=self._particle_cfg[system_name].get("particle_system_enable_ccd", None),
+                        max_depenetration_velocity=self._particle_cfg[system_name].get("particle_system_max_depenetration_velocity", None),
+                    )
+                    if self._particle_cfg[system_name].get("Anisotropy", False):
+                        # apply api and use all defaults
+                        PhysxSchema.PhysxParticleAnisotropyAPI.Apply(particle_system.prim)
+
+                    if self._particle_cfg[system_name].get("Smoothing", False):
+                        # apply api and use all defaults
+                        PhysxSchema.PhysxParticleSmoothingAPI.Apply(particle_system.prim)
+
+                    if self._particle_cfg[system_name].get("Isosurface", False):
+                        # apply api and use all defaults
+                        PhysxSchema.PhysxParticleIsosurfaceAPI.Apply(particle_system.prim)
+                        # tweak anisotropy min, max, and scale to work better with isosurface:
+                        if self._particle_cfg[system_name].get("Anisotropy", False):
+                            ani_api = PhysxSchema.PhysxParticleAnisotropyAPI.Apply(particle_system.prim)
+                            ani_api.CreateScaleAttr().Set(5.0)
+                            ani_api.CreateMinAttr().Set(1.0)  # avoids gaps in surface
+                            ani_api.CreateMaxAttr().Set(2.0)  # avoids gaps in surface
+
+                    print(f"[INFO] Created Particle System: {particle_system_path}")
+                self.created_particle_systems[system_name] = particle_system_path
+
+            # **Create PBD Material if not already created**
+            if material_key not in self.created_materials:
+                self.create_pbd_material(system_name)
+                self.created_materials[material_key] = True
+
+            # **Create Particle Grid under the existing system**
+            self.create_particle_grid(i, row, system_name)
+        print(f"[INFO] Created {len(self.created_materials)} PBD Materials.")
+        print(f"[INFO] Created {self.total_particles} Particles.")
+
+
+    def create_pbd_material(self, system_name):
+        # Retrieve material parameters from config based on system_name
+        material_cfg = self._particle_cfg[system_name]
+        
+        # Define unique material path
+        pbd_material_path = f"/World/pbdmaterial_{system_name}"
+        
+        # Check if the material already exists
+        if not self._stage.GetPrimAtPath(pbd_material_path).IsValid():
+            # Create PBD Material
+            particleUtils.add_pbd_particle_material(
+                self._stage,
+                Sdf.Path(pbd_material_path),
+                friction=material_cfg.get("pbd_material_friction", None),
+                particle_friction_scale=material_cfg.get("pbd_material_particle_friction_scale", None),
+                damping=material_cfg.get("pbd_material_damping", None),
+                viscosity=material_cfg.get("pbd_material_viscosity", None),
+                vorticity_confinement=material_cfg.get("pbd_material_vorticity_confinement", None),
+                surface_tension=material_cfg.get("pbd_material_surface_tension", None),
+                cohesion=material_cfg.get("pbd_material_cohesion", None),
+                adhesion=material_cfg.get("pbd_material_adhesion", None),
+                particle_adhesion_scale=material_cfg.get("pbd_material_particle_adhesion_scale", None),
+                adhesion_offset_scale=material_cfg.get("pbd_material_adhesion_offset_scale", None),
+                gravity_scale=material_cfg.get("pbd_material_gravity_scale", None),
+                lift=material_cfg.get("pbd_material_lift", None),
+                drag=material_cfg.get("pbd_material_drag", None),
+                density=material_cfg.get("pbd_material_density", None),
+                cfl_coefficient=material_cfg.get("pbd_material_cfl_coefficient", None)
+            )
+            print(f"[INFO] Created PBD Material: {pbd_material_path}")
+
+            # Assign material to particle system
+            ps = PhysxSchema.PhysxParticleSystem.Get(self._stage, Sdf.Path(f"/World/particleSystem/{system_name}"))
+            physicsUtils.add_physics_material_to_prim(self._stage, ps.GetPrim(), pbd_material_path)
+
+            if self._particle_cfg[system_name].get("Looks", False):
+                mtl_created = []
+                omni.kit.commands.execute(
+                    "CreateAndBindMdlMaterialFromLibrary",
+                    mdl_name="OmniSurfacePresets.mdl",
+                    mtl_name="OmniSurface_DeepWater",
+                    mtl_created_list=mtl_created,
+                    select_new_prim=False,
+                )
+                material_path = mtl_created[0]
+                omni.kit.commands.execute(
+                    "BindMaterial", prim_path=Sdf.Path(f"/World/particleSystem/{system_name}"), material_path=material_path
+                )
+
+
+    def create_particle_grid(self, i, terrain_row, system_name):
+        # Define the particle system path
+        particle_system_path = f"/World/particleSystem/{system_name}"    
+
+        # Extract parameters from terrain_detail and config
+        level = int(terrain_row[1])
+        row_idx = int(terrain_row[2])
+        col_idx = int(terrain_row[3])
+        depth = float(terrain_row[8]) * 2.0
+        size  = float(terrain_row[9])
+    
+        # If your environment origins are stored separately:
+        env_origin_x, env_origin_y, env_origin_z = self.env_origins[row_idx, col_idx]
+        
+        x_position = env_origin_x - size / 2.0
+        y_position = env_origin_y - size / 2.0
+        z_position = env_origin_z + 0.05  # Align with environment origin
+        lower = Gf.Vec3f(x_position, y_position, z_position)
+
+        system_cfg = self._particle_cfg[system_name]
+        solid_rest_offset = system_cfg.get("particle_system_solid_rest_offset", None)
+        particle_spacing = system_cfg.get("particle_grid_spacing", None)
+        fluid = system_cfg.get("particle_grid_fluid", None)
+
+        if fluid:
+            fluid_rest_offset = 0.99 * 0.6 * system_cfg.get("particle_system_particle_contact_offset", None)
+            particle_spacing = 2.5 * fluid_rest_offset
+        else:
+            particle_spacing = 2.5 * solid_rest_offset
+
+        num_samples_x = int(size / particle_spacing) + 1
+        num_samples_y = int(size / particle_spacing) + 1
+        num_samples_z = int(depth / particle_spacing) + 1
+
+        jitter_factor = system_cfg["particle_grid_jitter_factor"] * particle_spacing
+
+        positions = []
+        velocities = []
+        uniform_particle_velocity = Gf.Vec3f(0.0)
+        ind = 0
+        x = lower[0]
+        y = lower[1]
+        z = lower[2]
+        for i in range(num_samples_x):
+            for j in range(num_samples_y):
+                for k in range(num_samples_z):
+                    jitter_x = random.uniform(-jitter_factor, jitter_factor)
+                    jitter_y = random.uniform(-jitter_factor, jitter_factor)
+                    jitter_z = random.uniform(-jitter_factor, jitter_factor)
+
+                    # Apply jitter to the position
+                    jittered_x = x + jitter_x
+                    jittered_y = y + jitter_y
+                    jittered_z = z + jitter_z
+                    positions.append(Gf.Vec3f(jittered_x, jittered_y, jittered_z))
+                    velocities.append(uniform_particle_velocity)
+                    ind += 1
+                    z += particle_spacing
+                z = lower[2]
+                y += particle_spacing
+            y = lower[1]
+            x += particle_spacing
+
+        # Define particle point instancer path (now grouped by level)
+        particle_point_instancer_path = f"/World/particleSystem/{system_name}/level_{level}/particleInstancer"
+
+        # Store instancer path in a dictionary grouped by level
+        if level not in self.particle_instancers_by_level:
+            self.particle_instancers_by_level[level] = []
+
+        # Check if the PointInstancer already exists to prevent duplication
+        if not self._stage.GetPrimAtPath(particle_point_instancer_path).IsValid():
+            # Add the particle set to the point instancer
+            particleUtils.add_physx_particleset_pointinstancer(
+                self._stage,
+                Sdf.Path(particle_point_instancer_path),
+                Vt.Vec3fArray(positions),
+                Vt.Vec3fArray(velocities),
+                Sdf.Path(particle_system_path),
+                self._particle_cfg[system_name]["particle_grid_self_collision"],
+                self._particle_cfg[system_name]["particle_grid_fluid"],
+                self._particle_cfg[system_name]["particle_grid_particle_group"],
+                self._particle_cfg[system_name]["particle_grid_particle_mass"],
+                self._particle_cfg[system_name]["particle_grid_density"],
+                num_prototypes=1,  # Adjust if needed
+                prototype_indices=None  # Adjust if needed
+            )
+            print(f"[INFO] Created Particle Grid at {particle_point_instancer_path}")
+            self.particle_instancers_by_level[level] = particle_point_instancer_path
+            # Increment the total_particles counter
+            self.total_particles += len(positions)
+        
+            # Configure particle prototype
+            particle_prototype_sphere = UsdGeom.Sphere.Get(
+                self._stage, Sdf.Path(particle_point_instancer_path).AppendChild("particlePrototype0")
+            )
+            if fluid:
+                radius = fluid_rest_offset 
+            else:
+                radius = solid_rest_offset
+            particle_prototype_sphere.CreateRadiusAttr().Set(radius)
+            # Increase counters, etc.
+            self.total_particles += len(positions)
+            print(f"[INFO] Created {len(positions)} Particles at {particle_point_instancer_path}")
+        else:
+            point_instancer = UsdGeom.PointInstancer.Get(self._stage, particle_point_instancer_path)            
+            
+            existing_positions = point_instancer.GetPositionsAttr().Get()
+            existing_velocities = point_instancer.GetVelocitiesAttr().Get()
+
+            # Convert Python lists -> Vt.Vec3fArray (new data)
+            new_positions = Vt.Vec3fArray(positions)
+            new_velocities = Vt.Vec3fArray(velocities)
+
+            appended_positions = Vt.Vec3fArray(list(existing_positions) + list(new_positions))
+            appended_velocities = Vt.Vec3fArray(list(existing_velocities) + list(new_velocities))
+
+            # Re-set the attributes on the same instancer
+            point_instancer.GetPositionsAttr().Set(appended_positions)
+            point_instancer.GetVelocitiesAttr().Set(appended_velocities)
+
+            # Also update the prototype indices if necessary.
+            existing_proto = list(point_instancer.GetProtoIndicesAttr().Get() or [])
+            new_proto = [0] * len(new_positions)
+            point_instancer.GetProtoIndicesAttr().Set(existing_proto + new_proto)
+
+            # IMPORTANT: Reconfigure the particle set so that the simulation recalculates
+            # properties such as mass based on the updated number of particles.
+            particleUtils.configure_particle_set(
+                point_instancer.GetPrim(),
+                particle_system_path,
+                self._particle_cfg[system_name]["particle_grid_self_collision"],
+                self._particle_cfg[system_name]["particle_grid_fluid"],
+                self._particle_cfg[system_name]["particle_grid_particle_group"],
+                self._particle_cfg[system_name]["particle_grid_particle_mass"] * len(appended_positions),  # update mass based on total count
+                self._particle_cfg[system_name]["particle_grid_density"],
+            )
+            print(f"[INFO] Appended {len(new_positions)} Particles to {particle_point_instancer_path}")
+            # Increment the total_particles counter
+            self.total_particles += len(new_positions)
+
+
+    def create_particles_from_mesh(self):
+        """
+        Creates particles from the specified mesh.
+        
+        Args:
+
+        """
+        default_prim_path = "/World"
+        particle_system_path = default_prim_path + "/particleSystem"
+        particle_set_path = default_prim_path + "/particles"
+        # create a cube mesh that shall be sampled:
+        cube_mesh_path = Sdf.Path(omni.usd.get_stage_next_free_path(self._stage, "/Cube", True))
+        cube_resolution = (
+            2  # resolution can be low because we'll sample the surface / volume only irrespective of the vertex count
+        )
+        omni.kit.commands.execute(
+            "CreateMeshPrimWithDefaultXform", prim_type="Cube", u_patches=cube_resolution, v_patches=cube_resolution, select_new_prim=False
+        )        
+        cube_mesh = UsdGeom.Mesh.Get(self._stage, Sdf.Path(cube_mesh_path))
+
+        physicsUtils.setup_transform_as_scale_orient_translate(cube_mesh)
+
+        physicsUtils.set_or_add_translate_op(
+        cube_mesh, 
+        Gf.Vec3f(
+            self._particle_cfg["system1"]["particle_x_position"], 
+            self._particle_cfg["system1"]["particle_y_position"], 
+            self._particle_cfg["system1"]["particle_z_position"]
+            )
+        )
+        physicsUtils.set_or_add_scale_op(
+            cube_mesh, 
+            Gf.Vec3f(
+                self._particle_cfg["system1"]["particle_scale_x"], 
+                self._particle_cfg["system1"]["particle_scale_y"], 
+                self._particle_cfg["system1"]["particle_scale_z"]
+            )
+        )
+        
+        # Calculate sampling distance based on particle system parameters
+        solid_rest_offset =  self._particle_cfg["system1"]["particle_system_solid_rest_offset"]
+        particle_sampler_distance = 2.5 * solid_rest_offset
+
+        # Apply particle sampling on the mesh
+        sampling_api = PhysxSchema.PhysxParticleSamplingAPI.Apply(cube_mesh.GetPrim())
+        # sampling_api.CreateSamplingDistanceAttr().Set(particle_sampler_distance)
+        sampling_api.CreateMaxSamplesAttr().Set(5e5)
+        sampling_api.CreateVolumeAttr().Set(True)  # Set to True if sampling volume, False for surface
+
+        cube_mesh.CreateVisibilityAttr("invisible")
+
+        # create particle set
+        points = UsdGeom.Points.Define(self._stage, particle_set_path)
+        points.CreateDisplayColorAttr().Set(Vt.Vec3fArray([Gf.Vec3f(71.0 / 255.0, 125.0 / 255.0, 1.0)]))
+        particleUtils.configure_particle_set(points.GetPrim(), particle_system_path, 
+        self._particle_cfg["system1"]["particle_grid_self_collision"], self._particle_cfg["system1"]["particle_grid_fluid"], 
+        self._particle_cfg["system1"]["particle_grid_particle_group"], self._particle_cfg["system1"]["particle_grid_particle_mass"], self._particle_cfg["system1"]["particle_grid_density"])
+
+        # reference the particle set in the sampling api
+        sampling_api.CreateParticlesRel().AddTarget(particle_set_path)
+
+
+            def _visualize_terrain_heights(self):
+        """
+        Spawns (or updates) a PointInstancer of small spheres for every cell in self.height_samples,
+        but only for the main terrain region (excluding the border).
+        """
+        import omni.kit.commands
+        from pxr import UsdGeom, Sdf, Gf, Vt
+
+        stage = self._stage  # or get_current_stage()
+
+        # 1) Create a dedicated Scope for the debug instancer
+        parent_scope_path = "/World/DebugTerrainHeights"
+        parent_scope_prim = stage.GetPrimAtPath(parent_scope_path)
+        if not parent_scope_prim.IsValid():
+            omni.kit.commands.execute(
+                "CreatePrim",
+                prim_type="Scope",
+                prim_path=parent_scope_path,
+                attributes={}
+            )
+
+        # 2) Construct a PointInstancer prim if not already there
+        point_instancer_path = f"{parent_scope_path}/terrain_points_instancer"
+        point_instancer_prim = stage.GetPrimAtPath(point_instancer_path)
+        if not point_instancer_prim.IsValid():
+            omni.kit.commands.execute(
+                "CreatePrim",
+                prim_type="PointInstancer",
+                prim_path=point_instancer_path,
+                attributes={}
+            )
+
+        point_instancer = UsdGeom.PointInstancer(stage.GetPrimAtPath(point_instancer_path))
+
+        # 3) Create/ensure we have a single prototype (Sphere) under the PointInstancer
+        prototype_index = 0
+        proto_path = f"{point_instancer_path}/prototype_Sphere"
+        prototype_prim = stage.GetPrimAtPath(proto_path)
+        if not prototype_prim.IsValid():
+            # Create a sphere prototype
+            omni.kit.commands.execute(
+                "CreatePrim",
+                prim_type="Sphere",
+                prim_path=proto_path,
+                attributes={"radius": 0.02},  # adjust sphere size as you wish
+            )
+        # This step ensures the point-instancer references the prototype as well
+        if len(point_instancer.GetPrototypesRel().GetTargets()) == 0:
+            point_instancer.GetPrototypesRel().AddTarget(proto_path)
+
+        # 4) Build up the positions (and protoIndices) for each cell of the *main* height field
+        tot_rows = self.terrain.tot_rows   # i dimension
+        tot_cols = self.terrain.tot_cols   # j dimension
+        border   = self.terrain.border     # integer # of “cells” that define the border thickness
+
+        positions = []
+        proto_indices = []
+
+        # Only iterate within the interior region [border, (tot_rows - border)) and [border, (tot_cols - border))
+        for i in range(border, tot_rows - border):
+            for j in range(border, tot_cols - border):
+                # Convert row/col -> world coordinates
+                px = i * self.terrain.horizontal_scale - self.terrain.border_size
+                py = j * self.terrain.horizontal_scale - self.terrain.border_size
+                pz = float(self.height_samples[i, j] * self.terrain.vertical_scale)
+
+                positions.append(Gf.Vec3f(px, py, pz))
+                proto_indices.append(prototype_index)
+
+        positions_array = Vt.Vec3fArray(positions)
+        proto_indices_array = Vt.IntArray(proto_indices)
+
+        # 5) Assign the arrays to the PointInstancer
+        point_instancer.CreatePositionsAttr().Set(positions_array)
+        point_instancer.CreateProtoIndicesAttr().Set(proto_indices_array)
+
+        # Optionally give these debug spheres a color by modifying the prototype itself:
+        sphere_geom = UsdGeom.Sphere(stage.GetPrimAtPath(proto_path))
+        sphere_geom.CreateDisplayColorAttr().Set([Gf.Vec3f(0.0, 1.0, 1.0)])
+
+
+    def _visualize_depression_indices(self):
+        """
+        Creates (or updates) a PointInstancer of small spheres at z=0 
+        for each (x,y) entry
+        """
+
+        stage = self._stage  # Or get_current_stage()
+
+        # 1) Create a dedicated Scope for debugging these indices
+        debug_scope_path = "/World/DebugDepressionIndices"
+        if not stage.GetPrimAtPath(debug_scope_path).IsValid():
+            omni.kit.commands.execute(
+                "CreatePrim",
+                prim_type="Scope",
+                prim_path=debug_scope_path,
+                attributes={}
+            )
+
+        # 2) Create a PointInstancer for all depression indices
+        instancer_path = f"{debug_scope_path}/DepressionIndicesPointInstancer"
+        if not stage.GetPrimAtPath(instancer_path).IsValid():
+            omni.kit.commands.execute(
+                "CreatePrim",
+                prim_type="PointInstancer",
+                prim_path=instancer_path,
+                attributes={}
+            )
+        point_instancer = UsdGeom.PointInstancer(stage.GetPrimAtPath(instancer_path))
+
+        # 3) Make sure there's a prototype sphere
+        sphere_proto_path = f"{instancer_path}/DepressionIndexSphere"
+        if not stage.GetPrimAtPath(sphere_proto_path).IsValid():
+            omni.kit.commands.execute(
+                "CreatePrim",
+                prim_type="Sphere",
+                prim_path=sphere_proto_path,
+                attributes={"radius": 0.02},  # adjust size as desired
+            )
+        # Ensure the instancer references the prototype
+        if len(point_instancer.GetPrototypesRel().GetTargets()) == 0:
+            point_instancer.GetPrototypesRel().AddTarget(sphere_proto_path)
+
+        # 4) Collect positions and prototype indices
+        positions = []
+        proto_indices = []
+
+        prototype_index = 0  # single prototype
+
+        for terrain_entry in self.terrain.terrain_details:
+            terrain_name = terrain_entry[4]
+            if terrain_name == "central_depression_terrain":
+                bx_start = int(terrain_entry[10])
+                bx_end   = int(terrain_entry[11])
+                by_start = int(terrain_entry[12])
+                by_end   = int(terrain_entry[13])
+
+                # For each (i, j) in that rectangle
+                for i in range(bx_start, bx_end):
+                    for j in range(by_start, by_end):
+                        # Convert heightfield indices to world coordinates
+                        px = i * self.terrain.horizontal_scale - self.terrain.border_size
+                        py = j * self.terrain.horizontal_scale - self.terrain.border_size
+                        pz = 0.0  # place at ground (z=0)
+                        positions.append(Gf.Vec3f(px, py, pz))
+                        proto_indices.append(prototype_index)
+
+        positions_array = Vt.Vec3fArray(positions)
+        proto_indices_array = Vt.IntArray(proto_indices)
+
+        # 5) Assign to the PointInstancer
+        point_instancer.CreatePositionsAttr().Set(positions_array)
+        point_instancer.CreateProtoIndicesAttr().Set(proto_indices_array)
+
+        # (Optional) Color the debug spheres differently
+        sphere_geom = UsdGeom.Sphere(stage.GetPrimAtPath(sphere_proto_path))
+        sphere_geom.CreateDisplayColorAttr().Set([Gf.Vec3f(0.0, 1.0, 0.0)])  # green for clarity
+
+
+    def query_top_particle_positions(self, level=None):
+        """
+        Query all particle positions from the given level and, using the depression indices
+        for that level, find for each grid cell the
+        top (maximum z) particle position.
+
+        Returns:
+            A dictionary mapping cell indices (i, j) to a tuple:
+            (cell_center_x, cell_center_y, top_z)
+            Only cells where at least one particle was found are included.
+        """
+        stage = self._stage
+        # Determine which levels to process: either the given level or all levels present
+        levels_to_process = [level] if level is not None else list(self.particle_instancers_by_level.keys())
+
+        for lvl in levels_to_process:
+            if lvl not in self.particle_instancers_by_level:
+                print(f"No particle instancers registered for level {lvl}")
+                continue
+
+            prim = self._stage.GetPrimAtPath(self.particle_instancers_by_level[level])
+            point_instancer = UsdGeom.PointInstancer(prim)
+            particle_positions = point_instancer.GetPositionsAttr().Get()  # Vt.Vec3fArray of positions
+            particle_positions_np = np.array(particle_positions)
+
+            # 1) Create a dedicated Scope for debugging these indices
+            debug_scope_path = "/World/DebugDepressionIndices"
+            if not stage.GetPrimAtPath(debug_scope_path).IsValid():
+                omni.kit.commands.execute(
+                    "CreatePrim",
+                    prim_type="Scope",
+                    prim_path=debug_scope_path,
+                    attributes={}
+                )
+
+            # 2) Create a PointInstancer for all depression indices
+            instancer_path = f"{debug_scope_path}/DepressionIndicesPointInstancer"
+            if not stage.GetPrimAtPath(instancer_path).IsValid():
+                omni.kit.commands.execute(
+                    "CreatePrim",
+                    prim_type="PointInstancer",
+                    prim_path=instancer_path,
+                    attributes={}
+                )
+            point_instancer = UsdGeom.PointInstancer(stage.GetPrimAtPath(instancer_path))
+
+            # 3) Make sure there's a prototype sphere
+            sphere_proto_path = f"{instancer_path}/DepressionIndexSphere"
+            if not stage.GetPrimAtPath(sphere_proto_path).IsValid():
+                omni.kit.commands.execute(
+                    "CreatePrim",
+                    prim_type="Sphere",
+                    prim_path=sphere_proto_path,
+                    attributes={"radius": 0.02},  # adjust size as desired
+                )
+            # Ensure the instancer references the prototype
+            if len(point_instancer.GetPrototypesRel().GetTargets()) == 0:
+                point_instancer.GetPrototypesRel().AddTarget(sphere_proto_path)
+            # Each region is assumed to be a dict with keys: "start_x", "end_x", "start_y", "end_y".
+            prototype_index = 0  # single prototype
+            positions = []
+            proto_indices = []
+
+            env_ids = (self.terrain_levels == lvl).nonzero(as_tuple=False).flatten()
+            points = quat_apply_yaw(
+                self.base_quat[env_ids].repeat(1, self.num_particle_height_points), self.particle_height_points[env_ids]
+            ) + (self.base_pos[env_ids, 0:3]).unsqueeze(1)
+            points += self.terrain.border_size
+            points = (points / self.terrain.horizontal_scale).long()
+            px = points[:, :, 0].view(-1)
+            py = points[:, :, 1].view(-1)
+            px = torch.clip(px, 0, self.height_samples.shape[0] - 2)
+            py = torch.clip(py, 0, self.height_samples.shape[1] - 2)
+            
+            # Convert the tensors of indices to Python lists.
+            px_list = px.tolist()
+            py_list = py.tolist()
+
+            for i, j in zip(px_list, py_list):
+                # Convert (i,j) indices into world coordinates.
+                # Here we assume that each cell spans a distance equal to terrain.horizontal_scale,
+                # and that the terrain's origin offset is given by terrain.border_size.
+                cell_x_min = (i-0.5) * self.terrain.horizontal_scale - self.terrain.border_size
+                cell_x_max = (i + 0.5) * self.terrain.horizontal_scale - self.terrain.border_size
+                cell_y_min = (j-0.5) * self.terrain.horizontal_scale - self.terrain.border_size
+                cell_y_max = (j + 0.5) * self.terrain.horizontal_scale - self.terrain.border_size
+                px = i * self.terrain.horizontal_scale - self.terrain.border_size
+                py = j * self.terrain.horizontal_scale - self.terrain.border_size
+
+                # For each cell defined by cell_x_min, cell_x_max, cell_y_min, cell_y_max:
+                mask = (
+                    (particle_positions_np[:, 0] >= cell_x_min) &
+                    (particle_positions_np[:, 0] < cell_x_max) &
+                    (particle_positions_np[:, 1] >= cell_y_min) &
+                    (particle_positions_np[:, 1] < cell_y_max)
+                )
+                if np.any(mask):
+                    top_z = float(np.max(particle_positions_np[mask, 2]))
+                    top_z = min(top_z, 1*self.terrain.vertical_scale)
+                    self.height_samples[i, j] = top_z 
+                else:
+                    top_z = self.height_samples[i, j] * self.terrain.vertical_scale
+                positions.append(Gf.Vec3f(px, py, float(top_z)))
+                proto_indices.append(prototype_index)
+
+            positions_array = Vt.Vec3fArray(positions)
+            proto_indices_array = Vt.IntArray(proto_indices)
+
+            # 5) Assign to the PointInstancer
+            point_instancer.CreatePositionsAttr().Set(positions_array)
+            point_instancer.CreateProtoIndicesAttr().Set(proto_indices_array)
+
+            # (Optional) Color the debug spheres differently
+            sphere_geom = UsdGeom.Sphere(stage.GetPrimAtPath(sphere_proto_path))
+            sphere_geom.CreateDisplayColorAttr().Set([Gf.Vec3f(0.0, 1.0, 0.0)])  # green for clarity
+
+
+    def _visualize_height_scans(self):
+        """
+        Visualizes the height-scan points more efficiently by using a single PointInstancer
+        to display all the debug spheres instead of creating/updating individual prims.
+        """
+        if not self.world.is_playing():
+            return
+
+        import omni.kit.commands
+        from pxr import Sdf, Gf, UsdGeom, Vt
+
+        # 1) Create/Get a dedicated DebugHeight scope
+        parent_scope_path = "/World/DebugHeight"
+        parent_scope_prim = self._stage.GetPrimAtPath(parent_scope_path)
+        if not parent_scope_prim.IsValid():
+            omni.kit.commands.execute(
+                "CreatePrim",
+                prim_type="Scope",
+                prim_path=parent_scope_path,
+                attributes={}
+            )
+
+        # 2) Create/Get a single PointInstancer for all height scan debug spheres
+        point_instancer_path = f"{parent_scope_path}/HeightScanPointInstancer"
+        point_instancer_prim = self._stage.GetPrimAtPath(point_instancer_path)
+        if not point_instancer_prim.IsValid():
+            omni.kit.commands.execute(
+                "CreatePrim",
+                prim_type="PointInstancer",
+                prim_path=point_instancer_path,
+                attributes={}
+            )
+        point_instancer = UsdGeom.PointInstancer(self._stage.GetPrimAtPath(point_instancer_path))
+
+        # 3) Create/ensure a single prototype sphere (with a small radius)
+        prototype_path = f"{point_instancer_path}/prototype_Sphere"
+        prototype_prim = self._stage.GetPrimAtPath(prototype_path)
+        if not prototype_prim.IsValid():
+            omni.kit.commands.execute(
+                "CreatePrim",
+                prim_type="Sphere",
+                prim_path=prototype_path,
+                attributes={"radius": 0.02},
+            )
+        # Make sure the PointInstancer references the prototype
+        if len(point_instancer.GetPrototypesRel().GetTargets()) == 0:
+            point_instancer.GetPrototypesRel().AddTarget(prototype_path)
+
+        # 4) Accumulate the sphere positions (and assign a prototype index of 0 for all)
+        positions = []
+        proto_indices = []
+
+        points = quat_apply_yaw(self.base_quat.repeat(1, self.num_height_points), self.height_points) + (
+            self.base_pos[:, 0:3]
+        ).unsqueeze(1)
+        points += self.terrain.border_size
+        points = (points / self.terrain.horizontal_scale).long()
+        px = points[:, :, 0].view(-1)
+        py = points[:, :, 1].view(-1)
+        px = torch.clip(px, 0, self.height_samples.shape[0] - 2)
+        py = torch.clip(py, 0, self.height_samples.shape[1] - 2)
+        num_points = self.num_envs * self.num_height_points
+        for idx in range(num_points):
+            # Compute world x and y from grid indices
+            world_x = px[idx].item() * self.terrain.horizontal_scale - self.terrain.border_size
+            world_y = py[idx].item() * self.terrain.horizontal_scale - self.terrain.border_size
+            # Look up the measured height at the grid cell and convert to world units
+            measured_z = self.height_samples[px[idx].item(), py[idx].item()].item() * self.terrain.vertical_scale
+            positions.append(Gf.Vec3f(world_x, world_y, measured_z))
+            proto_indices.append(0)
+
+
+        positions_array = Vt.Vec3fArray(positions)
+        proto_indices_array = Vt.IntArray(proto_indices)
+
+        # 5) Update the PointInstancer with the positions and prototype indices
+        point_instancer.CreatePositionsAttr().Set(positions_array)
+        point_instancer.CreateProtoIndicesAttr().Set(proto_indices_array)
+
+        # 6) (Optional) Set a debug color on the prototype sphere
+        sphere_geom = UsdGeom.Sphere(self._stage.GetPrimAtPath(prototype_path))
+        sphere_geom.CreateDisplayColorAttr().Set([Gf.Vec3f(1.0, 0.0, 0.0)])
 
 
 @torch.jit.script

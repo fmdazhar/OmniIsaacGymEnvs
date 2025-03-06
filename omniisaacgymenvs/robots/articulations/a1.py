@@ -64,7 +64,6 @@ class A1(Robot):
         'FL_calf_joint',  'FR_calf_joint',  'RL_calf_joint',  'RR_calf_joint'
         ]
         # contact sensor setup
-        self.feet_order = ["FL", "FR", "RL", "RR"]
         self.feet_path = [
             self._prim_path + "/FL_foot",
             self._prim_path + "/FR_foot",
