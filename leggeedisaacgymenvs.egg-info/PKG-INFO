@@ -1,0 +1,22 @@
+Metadata-Version: 2.2
+Name: leggeedisaacgymenvs
+Version: 4.0.0
+Summary: RL environments for robot learning in NVIDIA Isaac Sim.
+Author: NVIDIA
+Keywords: robotics,rl
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python :: 3.7, 3.8
+License-File: LICENSE.txt
+Requires-Dist: numpy==1.23.5
+Requires-Dist: protobuf==3.20.2
+Requires-Dist: omegaconf==2.3.0
+Requires-Dist: hydra-core==1.3.2
+Requires-Dist: urllib3==1.26.16
+Requires-Dist: rl-games==1.6.1
+Requires-Dist: moviepy==1.0.3
+Requires-Dist: gymnasium==0.28.1
+Dynamic: author
+Dynamic: classifier
+Dynamic: keywords
+Dynamic: requires-dist
+Dynamic: summary

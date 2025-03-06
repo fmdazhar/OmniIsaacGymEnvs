@@ -3,17 +3,18 @@ name: AnymalTerrain
 physics_engine: ${..physics_engine}
 
 env:
-  numEnvs: ${resolve_default:2048,${...num_envs}}
-  numObservations: 188
+  numEnvs: ${resolve_default:2,${...num_envs}}
+  numObservations: 48 #188 #3 + 3 + 3 + 3 + 12 + 12 + 140 + 12
   numActions: 12
   envSpacing: 3.  # [m]
 
   terrain:
+    measureHeights: True
     staticFriction: 1.0  # [-]
     dynamicFriction: 1.0  # [-]
     restitution: 0.        # [-]
     # rough terrain only:
-    curriculum: true
+    curriculum: False
     maxInitMapLevel: 0
     mapLength: 8.
     mapWidth: 8.
@@ -25,7 +26,7 @@ env:
     slopeTreshold: 0.5
 
   baseInitState:
-    pos: [0.0, 0.0, 0.62] # x,y,z [m]
+    pos: [0.0, 0.0, 0.42] # x,y,z [m]
     rot: [1.0, 0.0, 0.0, 0.0] # w,x,y,z [quat]
     vLinear: [0.0, 0.0, 0.0]  # x,y,z [m/s]
     vAngular: [0.0, 0.0, 0.0]  # x,y,z [rad/s]
@@ -38,45 +39,52 @@ env:
 
   control:
     # PD Drive parameters:
-    stiffness: 80.0  # [N*m/rad]
-    damping: 2.0     # [N*m*s/rad]
+    stiffness: 20.0  # [N*m/rad]
+    damping: 0.5     # [N*m*s/rad]
     # action scale: target angle = actionScale * action + defaultAngle
-    actionScale: 0.5
+    actionScale: 0.25
     # decimation: Number of control action updates @ sim DT per policy DT
     decimation: 4
 
-  defaultJointAngles:  # = target angles when action = 0.0
-    LF_HAA: 0.03    # [rad]
-    LH_HAA: 0.03    # [rad]
-    RF_HAA: -0.03   # [rad]
-    RH_HAA: -0.03   # [rad]
+  defaultJointAngles:
+    FL_hip_joint: 0.1
+    RL_hip_joint: 0.1
+    FR_hip_joint: -0.1
+    RR_hip_joint: -0.1
 
-    LF_HFE: 0.4     # [rad]
-    LH_HFE: -0.4    # [rad]
-    RF_HFE: 0.4     # [rad]
-    RH_HFE: -0.4    # [rad]
+    FL_thigh_joint: 0.8
+    RL_thigh_joint: 1.0
+    FR_thigh_joint: 0.8
+    RR_thigh_joint: 1.0
 
-    LF_KFE: -0.8    # [rad]
-    LH_KFE: 0.8     # [rad]
-    RF_KFE: -0.8    # [rad]
-    RH_KFE: 0.8     # [rad]
+    FL_calf_joint: -1.5
+    RL_calf_joint: -1.5
+    FR_calf_joint: -1.5
+    RR_calf_joint: -1.5
 
 
   learn:
     # rewards
-    terminalReward: 0.0
-    linearVelocityXYRewardScale: 1.0
-    linearVelocityZRewardScale: -4.0
-    angularVelocityXYRewardScale: -0.05
-    angularVelocityZRewardScale: 0.5
-    orientationRewardScale: -0.
-    torqueRewardScale: -0.00002 
-    jointAccRewardScale: -0.0005
-    baseHeightRewardScale: -0.0
-    actionRateRewardScale: -0.01
-    fallenOverRewardScale: -1.0
-    # cosmetics
-    hipRewardScale: -0. #25
+    scales:
+      termination : -0.0
+      tracking_lin_vel : 1.0
+      tracking_ang_vel : 0.5
+      lin_vel_z : -2.0
+      ang_vel_xy : -0.05
+      orientation : -0.
+      torques : -0.0002
+      dof_vel : -0.
+      dof_acc : -2.5e-7
+      base_height : -0. 
+      feet_air_time :  1.0
+      collision : -1.
+      feet_stumble : -0.0 
+      action_rate : -0.01
+      stand_still : -0.0
+      dof_pos_limits: -10.0
+
+    baseHeightTarget : 0.52
+    softDofPositionLimit: 0.9
 
     # normalization
     linearVelocityScale: 2.0
@@ -99,15 +107,31 @@ env:
     pushInterval_s: 15
 
     # episode length in seconds
-    episodeLength_s: 20
+    episodeLength_s: 15
 
+  randomizationRanges:
+    frictionRange : [0.5, 1.25]  # increase range
+    restitutionRange : [0., 1.0]
+    comDisplacementRange : [-0.15, 0.15]
+    addedMassRange : [-1., 1.]
+    motorStrengthRange : [0.9, 1.1]
+    motorOffsetRange : [0.0, 0.0]
+    KpFactorRange : [0.8, 1.3]
+    KdFactorRange : [0.5, 1.5]
+    randomizeFriction: False
+    randomizeCOM: False
+    randomizeAddedMass: False
+    randomizeMotorStrength: False
+    randomizeMotorOffset: False
+    randomizeKpFactor: False
+    randomizeKdFactor: False
 
 sim:
   dt: 0.005
   use_gpu_pipeline: ${eq:${...pipeline},"gpu"}
   gravity: [0.0, 0.0, -9.81]
   add_ground_plane: False
-  add_distant_light: False
+  add_distant_light: True
   use_fabric: True
   enable_scene_query_support: False
   disable_contact_processing: True
@@ -138,8 +162,8 @@ sim:
     # GPU buffers
     gpu_max_rigid_contact_count: 524288
     gpu_max_rigid_patch_count: 163840
-    gpu_found_lost_pairs_capacity: 4194304
-    gpu_found_lost_aggregate_pairs_capacity: 33554432
+    gpu_found_lost_pairs_capacity: 4196352 #4194304
+    gpu_found_lost_aggregate_pairs_capacity: 234684416 #117463040 #33554432
     gpu_total_aggregate_pairs_capacity: 4194304
     gpu_max_soft_body_contacts: 1048576
     gpu_max_particle_contacts: 1048576
@@ -148,10 +172,10 @@ sim:
     gpu_max_num_partitions: 8
 
 
-  anymal:
+  a1:
     # -1 to use default values
     override_usd_defaults: False
-    enable_self_collisions: True
+    enable_self_collisions: False
     enable_gyroscopic_forces: False
     # also in stage params
     # per-actor

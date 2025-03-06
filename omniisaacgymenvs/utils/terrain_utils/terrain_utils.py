@@ -35,7 +35,22 @@ from omni.isaac.core.prims import XFormPrim
 from pxr import Gf, PhysxSchema, Sdf, UsdPhysics
 from scipy import interpolate
 
+def flat_terrain(terrain, height_meters=0):
+    """
+    Generate a flat terrain.
 
+    Parameters:
+        terrain (SubTerrain): the terrain object
+        height_meters (float): the constant height of the terrain in meters
+
+    Returns:
+        terrain (SubTerrain): updated terrain with a flat surface
+    """
+    # Convert the height from meters to discrete units
+    height_units = int(height_meters / terrain.vertical_scale)
+    terrain.height_field_raw[:, :] = height_units
+    return terrain
+    
 def random_uniform_terrain(
     terrain,
     min_height,

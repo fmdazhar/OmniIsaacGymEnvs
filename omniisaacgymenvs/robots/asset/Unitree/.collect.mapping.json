@@ -1,0 +1,59 @@
+{
+    "version": "1.0",
+    "file_records": [
+        {
+            "source_url": "http://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.0/Isaac/Robots/Unitree/A1/a1.usd",
+            "source_hash": "dfd8ef19a8e205e3a8dacf4ac014e7bb38a15460",
+            "target_url": "./a1.usd",
+            "target_hash": "cfa574fc880ae5a0f2dd4fdf8135b8a78a5f6ce5"
+        },
+        {
+            "source_url": "http://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.0/Isaac/Robots/Unitree/A1/a1_sensor.usd",
+            "source_hash": "a07ee38e43fa464608bb3cc2f9fd99d756daec43",
+            "target_url": "./a1_sensor.usd",
+            "target_hash": "3b0a924bf6f10f4dccfbdfbae6064093d33db5f3"
+        },
+        {
+            "source_url": "http://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.0/Isaac/Robots/Unitree/B2/b2.usd",
+            "source_hash": "0f8c7a22bda9282fb683ff300b5f6db7b2193c42",
+            "target_url": "./b2.usd",
+            "target_hash": "1c02a5e26d72b0c7fc2b05320f86fbef5e10d88d"
+        },
+        {
+            "source_url": "http://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.0/Isaac/Robots/Unitree/G1/g1.usd",
+            "source_hash": "30f54e530652a2087c725eb925d86f612a2ec983",
+            "target_url": "./g1.usd",
+            "target_hash": "eaf0db692d3ae65977e77b7d133fbf1fae3c9414"
+        },
+        {
+            "source_url": "http://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.0/Isaac/Robots/Unitree/Go1/go1.usd",
+            "source_hash": "d2852ed535ecd0121b715842d62caef74b58fb4d",
+            "target_url": "./go1.usd",
+            "target_hash": "1bc0c9a8a91299d380e1a877c62b0bfac0174e02"
+        },
+        {
+            "source_url": "http://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.0/Isaac/Robots/Unitree/Go1/go1_sensor.usd",
+            "source_hash": "a7575503db477bc3782ee6483d7982e1a12c644a",
+            "target_url": "./go1_sensor.usd",
+            "target_hash": "c8f5e0d70ca2fe19d70efe8a989c79bde69586c2"
+        },
+        {
+            "source_url": "http://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.0/Isaac/Robots/Unitree/Go2/go2.usd",
+            "source_hash": "f9e9cd4149913ff5f01f9a5e992229469b13e618",
+            "target_url": "./go2.usd",
+            "target_hash": "222119754f4969268b8001ca77eb0f068ea172bd"
+        },
+        {
+            "source_url": "http://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.0/Isaac/Robots/Unitree/H1/h1.usd",
+            "source_hash": "756f0f4ff791cf222f6a5e19b7b7b0150775510a",
+            "target_url": "./h1.usd",
+            "target_hash": "abbde328c716710402ad9401d57b39d730ec55bb"
+        },
+        {
+            "source_url": "http://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.0/Isaac/Robots/Unitree/H1/h1_with_hand.usd",
+            "source_hash": "da1fbef19442207c29ad03afc8d1b8ad472c9fb0",
+            "target_url": "./h1_with_hand.usd",
+            "target_hash": "dfe34d54efaea51f695074ddd4ee860395150b3f"
+        }
+    ]
+}

@@ -1,0 +1,149 @@
+2025-03-04 14:24:44,583 INFO    MainThread:1988670 [internal.py:wandb_internal():90] W&B internal server running at pid: 1988670, started at: 2025-03-04 14:24:44.582886
+2025-03-04 14:24:44,584 INFO    WriterThread:1988670 [datastore.py:open_for_write():75] open: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/run-AnymalTerrain_2025-03-04_14-24-43.wandb
+2025-03-04 14:24:44,727 DEBUG   SenderThread:1988670 [sender.py:send():236] send: header
+2025-03-04 14:24:44,727 DEBUG   SenderThread:1988670 [sender.py:send():236] send: run
+2025-03-04 14:24:44,745 INFO    SenderThread:1988670 [sender.py:_maybe_setup_resume():493] checking resume status for bluewolf/rl/AnymalTerrain_2025-03-04_14-24-43
+2025-03-04 14:24:45,252 INFO    SenderThread:1988670 [dir_watcher.py:__init__():216] watching files in: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files
+2025-03-04 14:24:45,252 INFO    SenderThread:1988670 [sender.py:_start_run_threads():815] run started: AnymalTerrain_2025-03-04_14-24-43 with start time 1741094684
+2025-03-04 14:24:45,263 DEBUG   SenderThread:1988670 [sender.py:send():236] send: summary
+2025-03-04 14:24:45,264 INFO    SenderThread:1988670 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2025-03-04 14:24:45,268 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: check_version
+2025-03-04 14:24:45,268 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: check_version
+2025-03-04 14:24:45,334 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: run_start
+2025-03-04 14:24:45,339 DEBUG   HandlerThread:1988670 [meta.py:__init__():35] meta init
+2025-03-04 14:24:45,340 DEBUG   HandlerThread:1988670 [meta.py:__init__():49] meta init done
+2025-03-04 14:24:45,340 DEBUG   HandlerThread:1988670 [meta.py:probe():209] probe
+2025-03-04 14:24:45,349 DEBUG   HandlerThread:1988670 [meta.py:_setup_git():199] setup git
+2025-03-04 14:24:45,358 DEBUG   HandlerThread:1988670 [meta.py:_setup_git():206] setup git done
+2025-03-04 14:24:45,359 DEBUG   HandlerThread:1988670 [meta.py:_save_pip():53] save pip
+2025-03-04 14:24:45,359 DEBUG   HandlerThread:1988670 [meta.py:_save_pip():67] save pip done
+2025-03-04 14:24:45,360 DEBUG   HandlerThread:1988670 [meta.py:probe():247] probe done
+2025-03-04 14:24:45,442 DEBUG   SenderThread:1988670 [sender.py:send():236] send: files
+2025-03-04 14:24:45,442 INFO    SenderThread:1988670 [sender.py:_save_file():952] saving file wandb-metadata.json with policy now
+2025-03-04 14:24:45,445 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: stop_status
+2025-03-04 14:24:45,446 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: stop_status
+2025-03-04 14:24:45,667 DEBUG   SenderThread:1988670 [sender.py:send():236] send: telemetry
+2025-03-04 14:24:46,018 INFO    Thread-11 :1988670 [upload_job.py:push():138] Uploaded file /tmp/tmpo4t06s6qwandb/2w6hh040-wandb-metadata.json
+2025-03-04 14:24:46,254 INFO    Thread-7  :1988670 [dir_watcher.py:_on_file_created():269] file/dir created: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/output.log
+2025-03-04 14:24:46,254 INFO    Thread-7  :1988670 [dir_watcher.py:_on_file_created():269] file/dir created: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/requirements.txt
+2025-03-04 14:24:46,255 INFO    Thread-7  :1988670 [dir_watcher.py:_on_file_created():269] file/dir created: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/wandb-summary.json
+2025-03-04 14:24:46,255 INFO    Thread-7  :1988670 [dir_watcher.py:_on_file_created():269] file/dir created: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/wandb-metadata.json
+2025-03-04 14:24:46,360 DEBUG   SenderThread:1988670 [sender.py:send():236] send: telemetry
+2025-03-04 14:24:48,259 INFO    Thread-7  :1988670 [dir_watcher.py:_on_file_modified():286] file/dir modified: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/output.log
+2025-03-04 14:24:48,495 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: poll_exit
+2025-03-04 14:24:48,496 DEBUG   SenderThread:1988670 [sender.py:send():236] send: exit
+2025-03-04 14:24:48,496 INFO    SenderThread:1988670 [sender.py:send_exit():372] handling exit code: 1
+2025-03-04 14:24:48,497 INFO    SenderThread:1988670 [sender.py:send_exit():374] handling runtime: 3
+2025-03-04 14:24:48,499 INFO    SenderThread:1988670 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2025-03-04 14:24:48,500 INFO    SenderThread:1988670 [sender.py:send_exit():380] send defer
+2025-03-04 14:24:48,500 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: poll_exit
+2025-03-04 14:24:48,501 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: defer
+2025-03-04 14:24:48,503 INFO    HandlerThread:1988670 [handler.py:handle_request_defer():163] handle defer: 0
+2025-03-04 14:24:48,504 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: defer
+2025-03-04 14:24:48,504 INFO    SenderThread:1988670 [sender.py:send_request_defer():389] handle sender defer: 0
+2025-03-04 14:24:48,505 INFO    SenderThread:1988670 [sender.py:transition_state():393] send defer: 1
+2025-03-04 14:24:48,506 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: defer
+2025-03-04 14:24:48,506 INFO    HandlerThread:1988670 [handler.py:handle_request_defer():163] handle defer: 1
+2025-03-04 14:24:48,618 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: poll_exit
+2025-03-04 14:24:48,618 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: defer
+2025-03-04 14:24:48,618 INFO    SenderThread:1988670 [sender.py:send_request_defer():389] handle sender defer: 1
+2025-03-04 14:24:48,618 INFO    SenderThread:1988670 [sender.py:transition_state():393] send defer: 2
+2025-03-04 14:24:48,619 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: poll_exit
+2025-03-04 14:24:48,619 DEBUG   SenderThread:1988670 [sender.py:send():236] send: stats
+2025-03-04 14:24:48,619 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: defer
+2025-03-04 14:24:48,619 INFO    HandlerThread:1988670 [handler.py:handle_request_defer():163] handle defer: 2
+2025-03-04 14:24:48,619 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: defer
+2025-03-04 14:24:48,619 INFO    SenderThread:1988670 [sender.py:send_request_defer():389] handle sender defer: 2
+2025-03-04 14:24:48,619 INFO    SenderThread:1988670 [sender.py:transition_state():393] send defer: 3
+2025-03-04 14:24:48,620 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: defer
+2025-03-04 14:24:48,620 INFO    HandlerThread:1988670 [handler.py:handle_request_defer():163] handle defer: 3
+2025-03-04 14:24:48,620 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: defer
+2025-03-04 14:24:48,620 INFO    SenderThread:1988670 [sender.py:send_request_defer():389] handle sender defer: 3
+2025-03-04 14:24:48,620 INFO    SenderThread:1988670 [sender.py:transition_state():393] send defer: 4
+2025-03-04 14:24:48,620 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: defer
+2025-03-04 14:24:48,620 INFO    HandlerThread:1988670 [handler.py:handle_request_defer():163] handle defer: 4
+2025-03-04 14:24:48,620 DEBUG   SenderThread:1988670 [sender.py:send():236] send: summary
+2025-03-04 14:24:48,621 INFO    SenderThread:1988670 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2025-03-04 14:24:48,621 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: defer
+2025-03-04 14:24:48,621 INFO    SenderThread:1988670 [sender.py:send_request_defer():389] handle sender defer: 4
+2025-03-04 14:24:48,621 INFO    SenderThread:1988670 [sender.py:transition_state():393] send defer: 5
+2025-03-04 14:24:48,621 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: defer
+2025-03-04 14:24:48,621 INFO    HandlerThread:1988670 [handler.py:handle_request_defer():163] handle defer: 5
+2025-03-04 14:24:48,621 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: defer
+2025-03-04 14:24:48,622 INFO    SenderThread:1988670 [sender.py:send_request_defer():389] handle sender defer: 5
+2025-03-04 14:24:48,720 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: poll_exit
+2025-03-04 14:24:48,907 INFO    SenderThread:1988670 [sender.py:transition_state():393] send defer: 6
+2025-03-04 14:24:48,908 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: poll_exit
+2025-03-04 14:24:48,908 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: defer
+2025-03-04 14:24:48,908 INFO    HandlerThread:1988670 [handler.py:handle_request_defer():163] handle defer: 6
+2025-03-04 14:24:48,908 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: defer
+2025-03-04 14:24:48,908 INFO    SenderThread:1988670 [sender.py:send_request_defer():389] handle sender defer: 6
+2025-03-04 14:24:48,908 INFO    SenderThread:1988670 [dir_watcher.py:finish():353] shutting down directory watcher
+2025-03-04 14:24:49,009 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: poll_exit
+2025-03-04 14:24:49,265 INFO    SenderThread:1988670 [dir_watcher.py:_on_file_modified():286] file/dir modified: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/config.yaml
+2025-03-04 14:24:49,267 INFO    SenderThread:1988670 [dir_watcher.py:_on_file_modified():286] file/dir modified: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/output.log
+2025-03-04 14:24:49,268 INFO    SenderThread:1988670 [dir_watcher.py:_on_file_modified():286] file/dir modified: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/wandb-summary.json
+2025-03-04 14:24:49,269 INFO    SenderThread:1988670 [dir_watcher.py:finish():383] scan: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files
+2025-03-04 14:24:49,270 INFO    SenderThread:1988670 [dir_watcher.py:finish():397] scan save: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/config.yaml config.yaml
+2025-03-04 14:24:49,271 INFO    SenderThread:1988670 [dir_watcher.py:finish():397] scan save: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/output.log output.log
+2025-03-04 14:24:49,278 INFO    SenderThread:1988670 [dir_watcher.py:finish():397] scan save: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/requirements.txt requirements.txt
+2025-03-04 14:24:49,282 INFO    SenderThread:1988670 [dir_watcher.py:finish():397] scan save: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/wandb-metadata.json wandb-metadata.json
+2025-03-04 14:24:49,283 INFO    SenderThread:1988670 [dir_watcher.py:finish():397] scan save: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/wandb-summary.json wandb-summary.json
+2025-03-04 14:24:49,287 INFO    SenderThread:1988670 [sender.py:transition_state():393] send defer: 7
+2025-03-04 14:24:49,288 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: poll_exit
+2025-03-04 14:24:49,288 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: defer
+2025-03-04 14:24:49,291 INFO    HandlerThread:1988670 [handler.py:handle_request_defer():163] handle defer: 7
+2025-03-04 14:24:49,292 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: defer
+2025-03-04 14:24:49,292 INFO    SenderThread:1988670 [sender.py:send_request_defer():389] handle sender defer: 7
+2025-03-04 14:24:49,292 INFO    SenderThread:1988670 [file_pusher.py:finish():171] shutting down file pusher
+2025-03-04 14:24:49,393 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: poll_exit
+2025-03-04 14:24:49,393 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: poll_exit
+2025-03-04 14:24:49,495 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: poll_exit
+2025-03-04 14:24:49,496 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: poll_exit
+2025-03-04 14:24:49,599 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: poll_exit
+2025-03-04 14:24:49,600 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: poll_exit
+2025-03-04 14:24:49,703 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: poll_exit
+2025-03-04 14:24:49,703 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: poll_exit
+2025-03-04 14:24:49,805 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: poll_exit
+2025-03-04 14:24:49,806 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: poll_exit
+2025-03-04 14:24:49,909 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: poll_exit
+2025-03-04 14:24:49,910 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: poll_exit
+2025-03-04 14:24:49,935 INFO    Thread-15 :1988670 [upload_job.py:push():138] Uploaded file /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/wandb-summary.json
+2025-03-04 14:24:49,951 INFO    Thread-13 :1988670 [upload_job.py:push():138] Uploaded file /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/output.log
+2025-03-04 14:24:49,959 INFO    Thread-14 :1988670 [upload_job.py:push():138] Uploaded file /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/requirements.txt
+2025-03-04 14:24:49,974 INFO    Thread-12 :1988670 [upload_job.py:push():138] Uploaded file /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/files/config.yaml
+2025-03-04 14:24:50,014 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: poll_exit
+2025-03-04 14:24:50,014 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: poll_exit
+2025-03-04 14:24:50,117 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: poll_exit
+2025-03-04 14:24:50,117 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: poll_exit
+2025-03-04 14:24:50,176 INFO    Thread-6 (_thread_body):1988670 [sender.py:transition_state():393] send defer: 8
+2025-03-04 14:24:50,178 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: defer
+2025-03-04 14:24:50,178 INFO    HandlerThread:1988670 [handler.py:handle_request_defer():163] handle defer: 8
+2025-03-04 14:24:50,179 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: defer
+2025-03-04 14:24:50,179 INFO    SenderThread:1988670 [sender.py:send_request_defer():389] handle sender defer: 8
+2025-03-04 14:24:50,219 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: poll_exit
+2025-03-04 14:24:50,399 INFO    SenderThread:1988670 [sender.py:transition_state():393] send defer: 9
+2025-03-04 14:24:50,400 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: poll_exit
+2025-03-04 14:24:50,401 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: defer
+2025-03-04 14:24:50,402 INFO    HandlerThread:1988670 [handler.py:handle_request_defer():163] handle defer: 9
+2025-03-04 14:24:50,403 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: defer
+2025-03-04 14:24:50,403 INFO    SenderThread:1988670 [sender.py:send_request_defer():389] handle sender defer: 9
+2025-03-04 14:24:50,403 INFO    SenderThread:1988670 [sender.py:transition_state():393] send defer: 10
+2025-03-04 14:24:50,406 DEBUG   SenderThread:1988670 [sender.py:send():236] send: final
+2025-03-04 14:24:50,406 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: defer
+2025-03-04 14:24:50,406 DEBUG   SenderThread:1988670 [sender.py:send():236] send: footer
+2025-03-04 14:24:50,407 INFO    HandlerThread:1988670 [handler.py:handle_request_defer():163] handle defer: 10
+2025-03-04 14:24:50,409 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: defer
+2025-03-04 14:24:50,409 INFO    SenderThread:1988670 [sender.py:send_request_defer():389] handle sender defer: 10
+2025-03-04 14:24:50,504 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: poll_exit
+2025-03-04 14:24:50,505 DEBUG   SenderThread:1988670 [sender.py:send_request():250] send_request: poll_exit
+2025-03-04 14:24:50,506 INFO    SenderThread:1988670 [file_pusher.py:join():176] waiting for file pusher
+2025-03-04 14:24:51,037 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: sampled_history
+2025-03-04 14:24:51,039 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: get_summary
+2025-03-04 14:24:51,042 DEBUG   HandlerThread:1988670 [handler.py:handle_request():140] handle_request: shutdown
+2025-03-04 14:24:51,042 INFO    HandlerThread:1988670 [handler.py:finish():806] shutting down handler
+2025-03-04 14:24:51,406 INFO    WriterThread:1988670 [datastore.py:close():279] close: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250304_142444-AnymalTerrain_2025-03-04_14-24-43/run-AnymalTerrain_2025-03-04_14-24-43.wandb
+2025-03-04 14:24:51,935 INFO    SenderThread:1988670 [sender.py:finish():1114] shutting down sender
+2025-03-04 14:24:51,935 INFO    SenderThread:1988670 [file_pusher.py:finish():171] shutting down file pusher
+2025-03-04 14:24:51,936 INFO    SenderThread:1988670 [file_pusher.py:join():176] waiting for file pusher
+2025-03-04 14:24:51,941 INFO    MainThread:1988670 [internal.py:handle_exit():80] Internal process exited

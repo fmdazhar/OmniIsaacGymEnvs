@@ -86,6 +86,8 @@ class AnymalTask(RLTask):
         # default joint positions
         self.named_default_joint_angles = self._task_cfg["env"]["defaultJointAngles"]
 
+
+
         # other
         self.dt = 1 / 60
         self.max_episode_length_s = self._task_cfg["env"]["learn"]["episodeLength_s"]

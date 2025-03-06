@@ -1,0 +1,11 @@
+{
+    "version": "1.0",
+    "file_records": [
+        {
+            "source_url": "http://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.0/Isaac/IsaacLab/Robots/Unitree/A1/Props/materials/trunk_A1.png",
+            "source_hash": "c58102e0c279ac4d8c5d1d958cc893310892cd9a",
+            "target_url": "./materials/trunk_A1.png",
+            "target_hash": "dc1c4cff86abd6e5cae7de0a03008f81eb992590"
+        }
+    ]
+}

@@ -1,0 +1,11 @@
+2025-02-24 18:52:04,892 INFO    MainThread:1769778 [internal.py:wandb_internal():90] W&B internal server running at pid: 1769778, started at: 2025-02-24 18:52:04.891945
+2025-02-24 18:52:04,907 INFO    WriterThread:1769778 [datastore.py:open_for_write():75] open: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250224_185204-AnymalTerrain_2025-02-24_18-52-03/run-AnymalTerrain_2025-02-24_18-52-03.wandb
+2025-02-24 18:52:05,075 DEBUG   SenderThread:1769778 [sender.py:send():236] send: header
+2025-02-24 18:52:05,075 DEBUG   SenderThread:1769778 [sender.py:send():236] send: run
+2025-02-24 18:52:05,092 INFO    SenderThread:1769778 [sender.py:_maybe_setup_resume():493] checking resume status for bluewolf/rl/AnymalTerrain_2025-02-24_18-52-03
+2025-02-24 18:52:05,530 WARNING MainThread:1769778 [internal.py:wandb_internal():153] Internal process interrupt: 1
+2025-02-24 18:52:05,639 INFO    SenderThread:1769778 [dir_watcher.py:__init__():216] watching files in: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250224_185204-AnymalTerrain_2025-02-24_18-52-03/files
+2025-02-24 18:52:05,639 INFO    SenderThread:1769778 [sender.py:_start_run_threads():815] run started: AnymalTerrain_2025-02-24_18-52-03 with start time 1740419524
+2025-02-24 18:52:06,025 WARNING MainThread:1769778 [internal.py:wandb_internal():153] Internal process interrupt: 2
+2025-02-24 18:52:06,025 ERROR   MainThread:1769778 [internal.py:wandb_internal():156] Internal process interrupted.
+2025-02-24 18:52:06,084 INFO    MainThread:1769778 [internal.py:handle_exit():80] Internal process exited

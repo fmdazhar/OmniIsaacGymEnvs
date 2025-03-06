@@ -1,0 +1,53 @@
+params:
+
+  config:
+    name: ${resolve_default:AnymalTerrain,${....experiment}}
+
+  AC_Args:
+    # policy configuration
+    init_noise_std: 1.0
+    actor_hidden_dims: [512, 256, 128]
+    critic_hidden_dims: [512, 256, 128]
+    activation: "elu"  # options: elu, relu, selu, crelu, lrelu, tanh, sigmoid
+    adaptation_module_branch_hidden_dims: [256, 128]
+    adaptation_labels: []
+    adaptation_dims: []
+    adaptation_weights: []
+    use_decoder: false
+
+  PPO_Args:
+    # algorithm configuration
+    value_loss_coef: 1.0
+    use_clipped_value_loss: true
+    clip_param: 0.2
+    entropy_coef: 0.01
+    num_learning_epochs: 5
+    num_mini_batches: 4  # mini batch size = num_envs * nsteps / num_mini_batches
+    learning_rate: 0.001  # equivalent to 1.e-3
+    adaptation_module_learning_rate: 0.001
+    num_adaptation_module_substeps: 1
+    schedule: "adaptive"  # options: adaptive, fixed
+    gamma: 0.99
+    lam: 0.95
+    desired_kl: 0.01
+    max_grad_norm: 1.0
+    selective_adaptation_module_loss: false
+
+  RunnerArgs:
+    # runner configuration
+    algorithm_class_name: "RMA"
+    num_steps_per_env: 24  # per iteration
+    max_iterations: 1500  # number of policy updates
+    
+    # logging configuration
+    save_interval: 400  # check for potential saves every this many iterations
+    save_video_interval: 100
+    log_freq: 10
+    
+    # load and resume configuration
+    resume: false
+    load_run: -1  # -1 indicates the last run
+    checkpoint: -1  # -1 indicates the last saved model
+    resume_path: null  # updated from load_run and checkpoint
+    resume_curriculum: true
+    resume_checkpoint: null

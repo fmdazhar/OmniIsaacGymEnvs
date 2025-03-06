@@ -1,0 +1,20 @@
+2025-02-25 13:05:29,101 INFO    MainThread:3045549 [internal.py:wandb_internal():90] W&B internal server running at pid: 3045549, started at: 2025-02-25 13:05:29.100786
+2025-02-25 13:05:29,102 INFO    WriterThread:3045549 [datastore.py:open_for_write():75] open: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250225_130528-AnymalTerrain_2025-02-25_13-05-27/run-AnymalTerrain_2025-02-25_13-05-27.wandb
+2025-02-25 13:05:29,119 WARNING MainThread:3045549 [internal.py:wandb_internal():153] Internal process interrupt: 1
+2025-02-25 13:05:29,249 DEBUG   SenderThread:3045549 [sender.py:send():236] send: header
+2025-02-25 13:05:29,249 DEBUG   SenderThread:3045549 [sender.py:send():236] send: run
+2025-02-25 13:05:29,267 INFO    SenderThread:3045549 [sender.py:_maybe_setup_resume():493] checking resume status for bluewolf/rl/AnymalTerrain_2025-02-25_13-05-27
+2025-02-25 13:05:29,858 INFO    SenderThread:3045549 [dir_watcher.py:__init__():216] watching files in: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250225_130528-AnymalTerrain_2025-02-25_13-05-27/files
+2025-02-25 13:05:29,858 INFO    SenderThread:3045549 [sender.py:_start_run_threads():815] run started: AnymalTerrain_2025-02-25_13-05-27 with start time 1740485128
+2025-02-25 13:05:38,129 WARNING MainThread:3045549 [internal.py:is_dead():387] Internal process exiting, parent pid 3044850 disappeared
+2025-02-25 13:05:38,129 ERROR   MainThread:3045549 [internal.py:wandb_internal():149] Internal process shutdown.
+2025-02-25 13:05:38,860 INFO    SenderThread:3045549 [sender.py:finish():1114] shutting down sender
+2025-02-25 13:05:38,861 INFO    SenderThread:3045549 [dir_watcher.py:finish():353] shutting down directory watcher
+2025-02-25 13:05:39,104 INFO    WriterThread:3045549 [datastore.py:close():279] close: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250225_130528-AnymalTerrain_2025-02-25_13-05-27/run-AnymalTerrain_2025-02-25_13-05-27.wandb
+2025-02-25 13:05:39,112 INFO    HandlerThread:3045549 [handler.py:finish():806] shutting down handler
+2025-02-25 13:05:39,861 INFO    SenderThread:3045549 [dir_watcher.py:finish():383] scan: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250225_130528-AnymalTerrain_2025-02-25_13-05-27/files
+2025-02-25 13:05:39,861 INFO    SenderThread:3045549 [dir_watcher.py:finish():397] scan save: /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250225_130528-AnymalTerrain_2025-02-25_13-05-27/files/config.yaml config.yaml
+2025-02-25 13:05:39,861 INFO    SenderThread:3045549 [file_pusher.py:finish():171] shutting down file pusher
+2025-02-25 13:05:39,862 INFO    SenderThread:3045549 [file_pusher.py:join():176] waiting for file pusher
+2025-02-25 13:05:40,627 INFO    Thread-9  :3045549 [upload_job.py:push():138] Uploaded file /media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250225_130528-AnymalTerrain_2025-02-25_13-05-27/files/config.yaml
+2025-02-25 13:05:41,188 INFO    MainThread:3045549 [internal.py:handle_exit():80] Internal process exited

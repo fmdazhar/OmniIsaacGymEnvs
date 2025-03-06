@@ -31,15 +31,16 @@ from datetime import datetime
 
 import numpy as np
 import torch
-from omni.isaac.gym.vec_env import VecEnvBase
+from .vec_env_base import VecEnvBase
 
 
 # VecEnv Wrapper for RL training
 class VecEnvRLGames(VecEnvBase):
     def _process_data(self):
-        self._obs = torch.clamp(self._obs, -self._task.clip_obs, self._task.clip_obs).to(self._task.rl_device)
+        self._obs = self._obs.to(self._task.rl_device)
+        if self._priv_obs is not None:
+            self._priv_obs = self._priv_obs.to(self._task.rl_device)
         self._rew = self._rew.to(self._task.rl_device)
-        self._states = torch.clamp(self._states, -self._task.clip_obs, self._task.clip_obs).to(self._task.rl_device)
         self._resets = self._resets.to(self._task.rl_device)
         self._extras = self._extras
 
@@ -48,6 +49,21 @@ class VecEnvRLGames(VecEnvBase):
 
         self.num_states = self._task.num_states
         self.state_space = self._task.state_space
+        self.num_obs = self._task._num_observations
+        self.num_privileged_obs = self._task._num_privileged_observations
+        self.num_proprio = self._task._num_proprio
+        self.num_priv = self._task._num_priv
+        self.history_len = self._task._obs_history_length
+        self.num_obs_history = self._task._num_obs_history
+        self.num_actions = self._task._num_actions
+        self.num_train_envs = self._task._num_train_envs
+        self.max_episode_length = self._task.max_episode_length
+        self.episode_length_buf = self._task.progress_buf
+        self.dt = self._task.dt
+
+        print(f"VecEnv: num_states={self.num_states}, num_observations={self.num_obs}, "
+              f"num_privileged_observations={self.num_privileged_obs}, num_obs_history={self.num_obs_history}, "
+              f"num_actions={self.num_actions}, num_train_envs={self.num_train_envs}, max_episode_length={self.max_episode_length}")
 
     def step(self, actions):
         # only enable rendering when we are recording, or if the task already has it enabled
@@ -89,19 +105,22 @@ class VecEnvRLGames(VecEnvBase):
                 self._world.step(render=False)
                 self.sim_frame_count += 1
 
-        self._obs, self._rew, self._resets, self._extras = self._task.post_physics_step()
+        self._obs, self._priv_obs, self._rew, self._resets, self._extras = self._task.post_physics_step()
 
         if self._task.randomize_observations:
             self._obs = self._task._dr_randomizer.apply_observations_randomization(
                 observations=self._obs.to(device=self._task.rl_device), reset_buf=self._task.reset_buf
             )
 
-        self._states = self._task.get_states()
         self._process_data()
 
-        obs_dict = {"obs": self._obs, "states": self._states}
+        return self._obs, self._priv_obs, self._rew, self._resets, self._extras
 
-        return obs_dict, self._rew, self._resets, self._extras
+    def get_observations(self):
+        return self._task.obs_buf
+    
+    def get_privileged_observations(self):
+        return self._task.privileged_obs_buf
 
     def reset(self, seed=None, options=None):
         """Resets the task and applies default zero actions to recompute observations and states."""
@@ -110,6 +129,6 @@ class VecEnvRLGames(VecEnvBase):
 
         self._task.reset()
         actions = torch.zeros((self.num_envs, self._task.num_actions), device=self._task.rl_device)
-        obs_dict, _, _, _ = self.step(actions)
+        obs,_, _, _, _ = self.step(actions)
 
-        return obs_dict
+        return obs

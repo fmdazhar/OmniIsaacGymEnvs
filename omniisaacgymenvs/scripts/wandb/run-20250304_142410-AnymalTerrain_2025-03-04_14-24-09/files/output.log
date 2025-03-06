@@ -1,0 +1,113 @@
+[91m[1m2025-03-04 13:24:11 [14,600ms] [Error] [omni.kit.app._impl] [py stderr]: /home/isaac/isaacsim/exts/omni.isaac.ml_archive/pip_prebundle/torch/nn/init.py:452: UserWarning: Initializing zero-element tensors is a no-op
+[91m[1m  warnings.warn("Initializing zero-element tensors is a no-op")
+[91m[1m2025-03-04 13:24:12 [15,246ms] [Error] [omni.kit.app._impl] [py stderr]: Error executing job with overrides: ['headless=True', 'test=True']
+[91m[1m2025-03-04 13:24:12 [15,554ms] [Error] [omni.kit.app._impl] [py stderr]: Traceback (most recent call last):
+[91m[1m2025-03-04 13:24:12 [15,554ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/train.py", line 198, in parse_hydra_configs
+[91m[1m    rlg_trainer.run(env, module_path, experiment_dir)
+[91m[1m2025-03-04 13:24:12 [15,554ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/train.py", line 111, in run
+[91m[1m    runner = OnPolicyRunner(env, self.rlg_config_dict, log_dir, device=device)
+[91m[1m2025-03-04 13:24:12 [15,554ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/rsl_rl/rsl_rl/runners/on_policy_runner.py", line 89, in __init__
+[91m[1m    _ = self.env.reset()
+[91m[1m2025-03-04 13:24:12 [15,554ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/envs/vec_env_rlgames.py", line 132, in reset
+[91m[1m    obs,_, _, _, _ = self.step(actions)
+[91m[1m2025-03-04 13:24:12 [15,555ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/envs/vec_env_rlgames.py", line 108, in step
+[91m[1m    self._obs, self._priv_obs, self._rew, self._resets, self._extras = self._task.post_physics_step()
+[91m[1m2025-03-04 13:24:12 [15,555ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/tasks/anymal_terrain.py", line 643, in post_physics_step
+[91m[1m    self.get_observations()
+[91m[1m2025-03-04 13:24:12 [15,555ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/tasks/anymal_terrain.py", line 764, in get_observations
+[91m[1m    if self.cfg.domain_rand.observe_priv:
+[91m[1m2025-03-04 13:24:12 [15,555ms] [Error] [omni.kit.app._impl] [py stderr]: AttributeError: 'dict' object has no attribute 'domain_rand'
+[91m[1m2025-03-04 13:24:12 [15,555ms] [Error] [omni.kit.app._impl] [py stderr]: 
+[91m[1mSet the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+Actor MLP: Actor(
+  (priv_encoder): Sequential(
+    (0): Linear(in_features=0, out_features=64, bias=True)
+    (1): ELU(alpha=1.0)
+    (2): Linear(in_features=64, out_features=20, bias=True)
+    (3): ELU(alpha=1.0)
+  )
+  (history_encoder): StateHistoryEncoder(
+    (activation_fn): ELU(alpha=1.0)
+    (encoder): Sequential(
+      (0): Linear(in_features=48, out_features=30, bias=True)
+      (1): ELU(alpha=1.0)
+    )
+    (conv_layers): Sequential(
+      (0): Conv1d(30, 20, kernel_size=(4,), stride=(2,))
+      (1): ELU(alpha=1.0)
+      (2): Conv1d(20, 10, kernel_size=(2,), stride=(1,))
+      (3): ELU(alpha=1.0)
+      (4): Flatten(start_dim=1, end_dim=-1)
+    )
+    (linear_output): Sequential(
+      (0): Linear(in_features=30, out_features=20, bias=True)
+      (1): ELU(alpha=1.0)
+    )
+  )
+  (actor_backbone): Sequential(
+    (0): Linear(in_features=68, out_features=128, bias=True)
+    (1): ELU(alpha=1.0)
+  )
+  (actor_leg_control_head): Sequential(
+    (0): Linear(in_features=128, out_features=128, bias=True)
+    (1): ELU(alpha=1.0)
+    (2): Linear(in_features=128, out_features=128, bias=True)
+    (3): ELU(alpha=1.0)
+    (4): Linear(in_features=128, out_features=12, bias=True)
+    (5): Tanh()
+  )
+)
+Critic MLP: Critic(
+  (critic_backbone): Sequential(
+    (0): Linear(in_features=48, out_features=128, bias=True)
+    (1): ELU(alpha=1.0)
+  )
+  (critic_leg_control_head): Sequential(
+    (0): Linear(in_features=128, out_features=128, bias=True)
+    (1): ELU(alpha=1.0)
+    (2): Linear(in_features=128, out_features=128, bias=True)
+    (3): ELU(alpha=1.0)
+    (4): Linear(in_features=128, out_features=1, bias=True)
+  )
+)
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+ActorCritic                              12
+├─Actor: 1-1                             --
+│    └─Sequential: 2-1                   --
+│    │    └─Linear: 3-1                  64
+│    │    └─ELU: 3-2                     --
+│    │    └─Linear: 3-3                  1,300
+│    │    └─ELU: 3-4                     --
+│    └─StateHistoryEncoder: 2-2          --
+│    │    └─ELU: 3-5                     --
+│    │    └─Sequential: 3-6              1,470
+│    │    └─Sequential: 3-7              2,830
+│    │    └─Sequential: 3-8              620
+│    └─Sequential: 2-3                   --
+│    │    └─Linear: 3-9                  8,832
+│    │    └─ELU: 3-10                    --
+│    └─Sequential: 2-4                   --
+│    │    └─Linear: 3-11                 16,512
+│    │    └─ELU: 3-12                    --
+│    │    └─Linear: 3-13                 16,512
+│    │    └─ELU: 3-14                    --
+│    │    └─Linear: 3-15                 1,548
+│    │    └─Tanh: 3-16                   --
+├─Critic: 1-2                            --
+│    └─Sequential: 2-5                   --
+│    │    └─Linear: 3-17                 6,272
+│    │    └─ELU: 3-18                    --
+│    └─Sequential: 2-6                   --
+│    │    └─Linear: 3-19                 16,512
+│    │    └─ELU: 3-20                    --
+│    │    └─Linear: 3-21                 16,512
+│    │    └─ELU: 3-22                    --
+│    │    └─Linear: 3-23                 129
+=================================================================
+Total params: 89,125
+Trainable params: 89,125
+Non-trainable params: 0
+=================================================================
+[2025-03-04 14:24:12] Running RL reset

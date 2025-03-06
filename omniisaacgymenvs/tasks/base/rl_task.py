@@ -38,11 +38,11 @@ import torch
 import warp as wp
 from gym import spaces
 from omni.isaac.cloner import GridCloner
-from omni.isaac.core.tasks import BaseTask
+from .base_task import BaseTask
 from omni.isaac.core.utils.prims import define_prim
 from omni.isaac.core.utils.stage import get_current_stage
 from omni.isaac.core.utils.types import ArticulationAction
-from omni.isaac.gym.tasks.rl_task import RLTaskInterface
+from .rl_task_interface import RLTaskInterface
 from omniisaacgymenvs.utils.domain_randomization.randomize import Randomizer
 from pxr import Gf, UsdGeom, UsdLux
 
@@ -139,7 +139,7 @@ class RLTask(RLTaskInterface):
                 np.ones(self.num_states, dtype=np.float32) * -np.Inf,
                 np.ones(self.num_states, dtype=np.float32) * np.Inf,
             )
-
+        
         self.cleanup()
 
     def cleanup(self) -> None:
@@ -147,6 +147,11 @@ class RLTask(RLTaskInterface):
 
         # prepare tensors
         self.obs_buf = torch.zeros((self._num_envs, self.num_observations), device=self._device, dtype=torch.float)
+        if self.num_privileged_observations is not None:
+            self.privileged_obs_buf = torch.zeros(self._num_envs, self.num_privileged_observations, device=self._device, dtype=torch.float)
+        else: 
+            self.privileged_obs_buf = None
+        self.obs_history_buf = torch.zeros(self._num_envs, self._obs_history_length, self._num_proprio, device=self.device, dtype=torch.float)
         self.states_buf = torch.zeros((self._num_envs, self.num_states), device=self._device, dtype=torch.float)
         self.rew_buf = torch.zeros(self._num_envs, device=self._device, dtype=torch.float)
         self.reset_buf = torch.ones(self._num_envs, device=self._device, dtype=torch.long)
