@@ -150,6 +150,12 @@ class AnymalTerrainTask(RLTask):
         self.Kp_factor_range = self._task_cfg["env"]["randomizationRanges"]["KpFactorRange"]
         self.Kd_factor_range = self._task_cfg["env"]["randomizationRanges"]["KdFactorRange"]
 
+        self.friction_scale, self.friction_shift = get_scale_shift(self.friction_range)
+        self.restitution_scale, self.restitution_shift = get_scale_shift(self.restitution_range)
+        self.payload_scale, self.payload_shift = get_scale_shift(self.added_mass_range)
+        self.com_scale, self.com_shift = get_scale_shift(self.com_displacement_range)
+        self.motor_strength_scale, self.motor_strength_shift = get_scale_shift(self.motor_strength_range)
+
         # other
         self.decimation = self._task_cfg["env"]["control"]["decimation"]
         self.dt = self.decimation * self._task_cfg["sim"]["dt"]
@@ -780,10 +786,11 @@ class AnymalTerrainTask(RLTask):
         self.thigh_pos, self.thigh_quat = self._anymals._thigh.get_world_poses(clone=False)
 
     def refresh_net_contact_force_tensors(self):
-        self.foot_contact_forces = self._anymals._foot.get_net_contact_forces(dt=self.dt,clone=False).view(self._num_envs, 4, 3)
+        new_foot_contact_forces = self._anymals._foot.get_net_contact_forces(dt=self.dt,clone=False).view(self._num_envs, 4, 3)
+        self.foot_contact_forces = self.foot_contact_forces * 0.9 + new_foot_contact_forces * 0.1
         self.thigh_contact_forces = self._anymals._thigh.get_net_contact_forces(dt=self.dt,clone=False).view(self._num_envs, 4, 3)
         self.shank_contact_forces = self._anymals._shank.get_net_contact_forces(dt=self.dt,clone=False).view(self._num_envs, 4, 3)
-
+        self.base_contact_forces = self._anymals._base.get_net_contact_forces(dt=self.dt,clone=False).view(self._num_envs, 3)
 
     def pre_physics_step(self, actions):
         if not self.world.is_playing():
@@ -853,14 +860,15 @@ class AnymalTerrainTask(RLTask):
             torch.zeros_like(self.timeout_buf),
         )
         thigh_contact = (
-            torch.norm(self._anymals._thigh.get_net_contact_forces(clone=False).view(self._num_envs, 4, 3), dim=-1)
+            torch.norm(self.thigh_contact_forces, dim=-1)
             > 1.0
         )
-        self.has_fallen = (torch.norm(self._anymals._base.get_net_contact_forces(clone=False), dim=1) > 1.0) | (
+        self.has_fallen = (torch.norm(self.base_contact_forces, dim=1) > 1.0) | (
             torch.sum(thigh_contact, dim=-1) > 1.0
         )
         self.reset_buf = self.has_fallen.clone()
         self.reset_buf = torch.where(self.timeout_buf.bool(), torch.ones_like(self.reset_buf), self.reset_buf)
+        
         # Convert each robot's base (x,y) position into heightfield indices
         hf_x = (self.base_pos[:, 0] + self.terrain.border_size) / self.terrain.horizontal_scale
         hf_y = (self.base_pos[:, 1] + self.terrain.border_size) / self.terrain.horizontal_scale
@@ -874,7 +882,7 @@ class AnymalTerrainTask(RLTask):
         self.reset_buf = torch.where(out_of_bounds, torch.ones_like(self.reset_buf), self.reset_buf)
 
     def _prepare_reward_function(self):
-        """ Prepares a list of reward functions, whcih will be called to compute the total reward.
+        """ Prepares a list of reward functions, which will be called to compute the total reward.
             Looks for self._reward_<REWARD_NAME>, where <REWARD_NAME> are names of all non zero reward scales in the cfg.
         """
         # remove zero scales + multiply non-zero ones by dt
@@ -984,6 +992,11 @@ class AnymalTerrainTask(RLTask):
         self.episode_sums["base_height"] += rew_base_height
         self.episode_sums["hip"] += rew_hip
 
+    def get_scale_shift(rng):
+        scale = 2.0 / (rng[1] - rng[0])
+        shift = (rng[1] + rng[0]) / 2.0
+        return scale, shift
+
     def get_observations(self):
         """
         Build a 'proprio_obs' block and (optionally) a 'heights' block,
@@ -1023,16 +1036,16 @@ class AnymalTerrainTask(RLTask):
             final_obs_no_history = torch.cat([proprio_obs, heights], dim=-1)
         else:
             final_obs_no_history = proprio_obs
-
+        
         # 4) Add any privileged data after the base blocks:
-        priv_buf = torch.cat((
-            self.payloads,
-            self.static_friction_coeffs,
-            self.dynamic_friction_coeffs,
-            self.restitutions,
-            self.com_displacements,
-            self.motor_strengths - 1.0
-        ), dim=-1)
+        privileged_obs = torch.cat((
+            (self.static_friction_coeffs - self.friction_shift) * self.friction_scale,
+            (self.dynamic_friction_coeffs - self.friction_shift) * self.friction_scale,
+            (self.restitutions - self.restitution_shift) * self.restitution_scale,
+            (self.payloads - self.payload_shift) * self.payload_scale,
+            (self.com_displacements - self.com_shift) * self.com_scale,
+            (self.motor_strengths - self.motor_strength_shift) * self.motor_strength_scale,
+        ), dim=1)
 
         # 5) Concatenate everything: [ (proprio + maybe heights) + priv_buf + obs_history ]
         self.obs_buf = torch.cat([

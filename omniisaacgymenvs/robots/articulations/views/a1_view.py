@@ -74,19 +74,19 @@ class A1View(ArticulationView):
 
         self._foot_material_path = "/World/envs/.*/a1/PhysicsMaterial*"
 
-    def get_knee_transforms(self):
-        return self._knees.get_world_poses()
+    def get_thigh_transforms(self):
+        return self._thigh.get_world_poses()
 
-    def is_knee_below_threshold(self, threshold, ground_heights=None):
-        knee_pos, _ = self._knees.get_world_poses()
-        knee_heights = knee_pos.view((-1, 4, 3))[:, :, 2]
+    def is_thigh_below_threshold(self, threshold, ground_heights=None):
+        thigh_pos, _ = self._thigh.get_world_poses()
+        thigh_heights = thigh_pos.view((-1, 4, 3))[:, :, 2]
         if ground_heights is not None:
-            knee_heights -= ground_heights
+            thigh_heights -= ground_heights
         return (
-            (knee_heights[:, 0] < threshold)
-            | (knee_heights[:, 1] < threshold)
-            | (knee_heights[:, 2] < threshold)
-            | (knee_heights[:, 3] < threshold)
+            (thigh_heights[:, 0] < threshold)
+            | (thigh_heights[:, 1] < threshold)
+            | (thigh_heights[:, 2] < threshold)
+            | (thigh_heights[:, 3] < threshold)
         )
 
     def is_base_below_threshold(self, threshold, ground_heights):
