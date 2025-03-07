@@ -34,22 +34,23 @@ from omniisaacgymenvs.utils.terrain_utils.terrain_utils import *
 
 
 # terrain generator
+
 class Terrain:
     def __init__(self, cfg, num_robots) -> None:
+        self.cfg = cfg
         self.horizontal_scale = 0.1
         self.vertical_scale = 0.005
         self.border_size = 20
-        self.num_per_env = 2
+
+        # Map dimensions in meters
         self.env_length = cfg["mapLength"]
         self.env_width = cfg["mapWidth"]
-        self.proportions = [np.sum(cfg["terrainProportions"][: i + 1]) for i in range(len(cfg["terrainProportions"]))]
+        terrain_types = self.cfg["terrain_types"]
 
-        self.env_rows = cfg["numLevels"]
-        self.env_cols = cfg["numTerrains"]
-        self.num_maps = self.env_rows * self.env_cols
-        self.num_per_env = int(num_robots / self.num_maps)
-        self.env_origins = np.zeros((self.env_rows, self.env_cols, 3))
+        self.env_rows = len(terrain_types)                # number of rows = number of unique terrain "types"
+        self.env_cols = max(t["count"] for t in terrain_types)  # total columns = max of 'count' across all types
 
+        # Each sub-rectangle (sub-terrain) dimensions in "heightfield" pixels
         self.width_per_env_pixels = int(self.env_width / self.horizontal_scale)
         self.length_per_env_pixels = int(self.env_length / self.horizontal_scale)
 
@@ -57,159 +58,111 @@ class Terrain:
         self.tot_cols = int(self.env_cols * self.width_per_env_pixels) + 2 * self.border
         self.tot_rows = int(self.env_rows * self.length_per_env_pixels) + 2 * self.border
 
+        # Master heightfield storage
         self.height_field_raw = np.zeros((self.tot_rows, self.tot_cols), dtype=np.int16)
-        if cfg["curriculum"]:
-            self.curiculum(num_robots, num_terrains=self.env_cols, num_levels=self.env_rows)
-        else:
-            self.full_flat_terrain()
+
+        # We'll keep track of each sub-terrain's info in a list:
+        self.terrain_details = []
+
+        self.env_origins = np.zeros((self.env_rows, self.env_cols, 3))
+
+        # Actually build the terrain
+        self.deformable_curriculum(num_robots)
         self.heightsamples = self.height_field_raw
+
+        # Convert to tri-mesh
         self.vertices, self.triangles = convert_heightfield_to_trimesh(
             self.height_field_raw, self.horizontal_scale, self.vertical_scale, cfg["slopeTreshold"]
         )
 
-    def randomized_terrain(self):
-        for k in range(self.num_maps):
-            # Env coordinates in the world
-            (i, j) = np.unravel_index(k, (self.env_rows, self.env_cols))
-
-            # Heightfield coordinate system from now on
-            start_x = self.border + i * self.length_per_env_pixels
-            end_x = self.border + (i + 1) * self.length_per_env_pixels
-            start_y = self.border + j * self.width_per_env_pixels
-            end_y = self.border + (j + 1) * self.width_per_env_pixels
-
-            terrain = SubTerrain(
-                "terrain",
-                width=self.width_per_env_pixels,
-                length=self.width_per_env_pixels,
-                vertical_scale=self.vertical_scale,
-                horizontal_scale=self.horizontal_scale,
-            )
-            choice = np.random.uniform(0, 1)
-            if choice < 0.1:
-                if np.random.choice([0, 1]):
-                    pyramid_sloped_terrain(terrain, np.random.choice([-0.3, -0.2, 0, 0.2, 0.3]))
-                    random_uniform_terrain(terrain, min_height=-0.1, max_height=0.1, step=0.05, downsampled_scale=0.2)
-                else:
-                    pyramid_sloped_terrain(terrain, np.random.choice([-0.3, -0.2, 0, 0.2, 0.3]))
-            elif choice < 0.6:
-                # step_height = np.random.choice([-0.18, -0.15, -0.1, -0.05, 0.05, 0.1, 0.15, 0.18])
-                step_height = np.random.choice([-0.15, 0.15])
-                pyramid_stairs_terrain(terrain, step_width=0.31, step_height=step_height, platform_size=3.0)
-            elif choice < 1.0:
-                discrete_obstacles_terrain(terrain, 0.15, 1.0, 2.0, 40, platform_size=3.0)
-
-            self.height_field_raw[start_x:end_x, start_y:end_y] = terrain.height_field_raw
-
-            env_origin_x = (i + 0.5) * self.env_length
-            env_origin_y = (j + 0.5) * self.env_width
-            x1 = int((self.env_length / 2.0 - 1) / self.horizontal_scale)
-            x2 = int((self.env_length / 2.0 + 1) / self.horizontal_scale)
-            y1 = int((self.env_width / 2.0 - 1) / self.horizontal_scale)
-            y2 = int((self.env_width / 2.0 + 1) / self.horizontal_scale)
-            env_origin_z = np.max(terrain.height_field_raw[x1:x2, y1:y2]) * self.vertical_scale
-            self.env_origins[i, j] = [env_origin_x, env_origin_y, env_origin_z]
-
-
-    def full_flat_terrain(self, height_meters=0.0):
+    def deformable_curriculum(self, num_robots):
         """
-        Generate flat terrain for all sub-terrains instead of random obstacles.
+        Create sub-terrains in a deterministic 'in-order' fashion based on
+        the `terrain_types` array from the config, repeating as needed.
         """
-        for k in range(self.num_maps):
-            # Env coordinates in the world
-            (i, j) = np.unravel_index(k, (self.env_rows, self.env_cols))
 
-            # Heightfield coordinate system from now on
-            start_x = self.border + i * self.length_per_env_pixels
-            end_x   = self.border + (i + 1) * self.length_per_env_pixels
-            start_y = self.border + j * self.width_per_env_pixels
-            end_y   = self.border + (j + 1) * self.width_per_env_pixels
+        # All possible terrain type definitions from config:
+        terrain_type_list = self.cfg["terrain_types"]  # e.g. a list of dicts
+        n_terrain_types = len(terrain_type_list)
 
-            # Create a SubTerrain for this environment
-            terrain = SubTerrain(
-                "terrain",
-                width=self.width_per_env_pixels,
-                length=self.width_per_env_pixels,
-                vertical_scale=self.vertical_scale,
-                horizontal_scale=self.horizontal_scale,
-            )
+        for i, terrain_type_info in enumerate(terrain_type_list):
+            name = str(terrain_type_info["name"])
+            count = terrain_type_info["count"]  # Number of terrains of this type
+            level = terrain_type_info["level"]
+            size = terrain_type_info.get("size", 0.0)
+            depth = terrain_type_info.get("depth", 0.0)
+            system = terrain_type_info.get("system", 0)
+            particles = int(terrain_type_info.get("particle_present", "False"))
+            compliant = int(terrain_type_info.get("compliant", "False"))
 
-            # Call the flat_terrain function from terrain_utils
-            flat_terrain(terrain, height_meters=height_meters)
-
-            # Copy the new flat terrain into our global height_field_raw
-            self.height_field_raw[start_x:end_x, start_y:end_y] = terrain.height_field_raw
-
-            # Compute the average origin height for placing robots
-            env_origin_x = (i + 0.5) * self.env_length
-            env_origin_y = (j + 0.5) * self.env_width
-            
-            # For a flat terrain, the terrain is uniform, but let's still compute
-            x1 = int((self.env_length / 2.0 - 1) / self.horizontal_scale)
-            x2 = int((self.env_length / 2.0 + 1) / self.horizontal_scale)
-            y1 = int((self.env_width  / 2.0 - 1) / self.horizontal_scale)
-            y2 = int((self.env_width  / 2.0 + 1) / self.horizontal_scale)
-            
-            env_origin_z = np.max(terrain.height_field_raw[x1:x2, y1:y2]) * self.vertical_scale
-            self.env_origins[i, j] = [env_origin_x, env_origin_y, env_origin_z]
-
-
-    def curiculum(self, num_robots, num_terrains, num_levels):
-        num_robots_per_map = int(num_robots / num_terrains)
-        left_over = num_robots % num_terrains
-        idx = 0
-        for j in range(num_terrains):
-            for i in range(num_levels):
+            for j in range(count):  # Generate `count` terrains for this type
+                idx = len(self.terrain_details)  # Unique terrain index
                 terrain = SubTerrain(
                     "terrain",
                     width=self.width_per_env_pixels,
-                    length=self.width_per_env_pixels,
+                    length=self.length_per_env_pixels,
                     vertical_scale=self.vertical_scale,
                     horizontal_scale=self.horizontal_scale,
                 )
-                difficulty = i / num_levels
-                choice = j / num_terrains
 
-                slope = difficulty * 0.4
-                step_height = 0.05 + 0.175 * difficulty
-                discrete_obstacles_height = 0.025 + difficulty * 0.15
-                stepping_stones_size = 2 - 1.8 * difficulty
-                if choice < self.proportions[0]:
-                    if choice < 0.05:
-                        slope *= -1
-                    pyramid_sloped_terrain(terrain, slope=slope, platform_size=3.0)
-                elif choice < self.proportions[1]:
-                    if choice < 0.15:
-                        slope *= -1
-                    pyramid_sloped_terrain(terrain, slope=slope, platform_size=3.0)
-                    random_uniform_terrain(terrain, min_height=-0.1, max_height=0.1, step=0.025, downsampled_scale=0.2)
-                elif choice < self.proportions[3]:
-                    if choice < self.proportions[2]:
-                        step_height *= -1
-                    pyramid_stairs_terrain(terrain, step_width=0.31, step_height=step_height, platform_size=3.0)
-                elif choice < self.proportions[4]:
-                    discrete_obstacles_terrain(terrain, discrete_obstacles_height, 1.0, 2.0, 40, platform_size=3.0)
-                else:
-                    stepping_stones_terrain(
-                        terrain, stone_size=stepping_stones_size, stone_distance=0.1, max_height=0.0, platform_size=3.0
+                # Assign terrain heightfield based on type
+                if name == "flat":
+                    flat_terrain(terrain, height_meters=0.0)
+                elif name == "rough":
+                    random_uniform_terrain(terrain, min_height=-0.1, max_height=0.1, step=0.025, downsampled_scale=0.2)                
+                elif name == "central_depression_terrain":
+
+                    central_depression_terrain(
+                        terrain, depression_depth=-abs(depth), platform_height=0.0, depression_size=size
                     )
+                else:
+                    flat_terrain(terrain, height_meters=0.0)
 
-                # Heightfield coordinate system
+                # Compute terrain placement in row i, col j
                 start_x = self.border + i * self.length_per_env_pixels
                 end_x = self.border + (i + 1) * self.length_per_env_pixels
                 start_y = self.border + j * self.width_per_env_pixels
                 end_y = self.border + (j + 1) * self.width_per_env_pixels
+
                 self.height_field_raw[start_x:end_x, start_y:end_y] = terrain.height_field_raw
 
-                robots_in_map = num_robots_per_map
-                if j < left_over:
-                    robots_in_map += 1
 
+                # bounding region in HF indices:
+                if name == "central_depression_terrain":
+                    lx0 = start_x + terrain.depression_indices["start_x"]
+                    lx1 = start_x + terrain.depression_indices["end_x"]
+                    ly0 = start_y + terrain.depression_indices["start_y"]
+                    ly1 = start_y + terrain.depression_indices["end_y"]
+                else:
+                    lx0, lx1, ly0, ly1 = (start_x, end_x, start_y, end_y)
+
+                # Store the origin of the terrain
                 env_origin_x = (i + 0.5) * self.env_length
                 env_origin_y = (j + 0.5) * self.env_width
-                x1 = int((self.env_length / 2.0 - 1) / self.horizontal_scale)
-                x2 = int((self.env_length / 2.0 + 1) / self.horizontal_scale)
-                y1 = int((self.env_width / 2.0 - 1) / self.horizontal_scale)
-                y2 = int((self.env_width / 2.0 + 1) / self.horizontal_scale)
-                env_origin_z = np.max(terrain.height_field_raw[x1:x2, y1:y2]) * self.vertical_scale
+                center_x1 = int((self.env_length / 2 - 1) / self.horizontal_scale)
+                center_x2 = int((self.env_length / 2 + 1) / self.horizontal_scale)
+                center_y1 = int((self.env_width / 2 - 1) / self.horizontal_scale)
+                center_y2 = int((self.env_width / 2 + 1) / self.horizontal_scale)
+                env_origin_z = np.max(
+                    terrain.height_field_raw[center_x1:center_x2, center_y1:center_y2]
+                ) * self.vertical_scale
                 self.env_origins[i, j] = [env_origin_x, env_origin_y, env_origin_z]
+
+                # Store terrain details
+                self.terrain_details.append((
+                    idx,
+                    level,
+                    i,
+                    j,
+                    name,
+                    particle_present,
+                    compliant_str,
+                    system,
+                    depth,
+                    size,
+                    lx0,
+                    lx1,
+                    ly0,
+                    ly1,
+                ))
+

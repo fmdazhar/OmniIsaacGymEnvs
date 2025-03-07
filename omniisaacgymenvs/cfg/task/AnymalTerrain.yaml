@@ -15,15 +15,199 @@ env:
     restitution: 0.        # [-]
     # rough terrain only:
     curriculum: False
+    VelocityCurriculum : True
     maxInitMapLevel: 0
     mapLength: 8.
     mapWidth: 8.
-    numLevels: 10
-    numTerrains: 20
-    # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete]
-    terrainProportions: [0.1, 0.1, 0.35, 0.25, 0.2]
     # tri mesh only:
     slopeTreshold: 0.5
+
+    # Extended terrain types with particle parameters and compliance flags
+    terrain_types:
+      - name: flat
+        particle_present: False
+        compliant: False
+        count: 5
+        level: 0
+      - name: rough
+        compliant: True
+        particle_present: False
+        count: 5
+        level: 0
+
+      - name: rough
+        compliant: True
+        particle_present: False
+        count: 5
+        level: 1
+
+      - name: flat
+        compliant: True
+        particle_present: False
+        count: 1
+      - name: flat
+        compliant: True
+        particle_present: False
+        count: 1
+
+      - name: central_depression_terrain
+        compliant: True
+        count: 2
+        level: 0
+        particle_present: True
+        system: 1
+        terrain_depression_depth: 0.13
+        terrain_depression_size: 4           # Length of the terrain grid (number of points)
+      # - name: central_depression_terrain
+      #   compliant: True
+      #   count: 1
+      #   level: 1
+      #   particle_present: True
+      #   system: 1
+      #   terrain_depression_depth: 0.1
+      #   terrain_depression_size: 3           # Length of the terrain grid (number of points)
+
+      # - name: central_depression_terrain
+      #   compliant: True
+      #   count: 1
+      #   level: 1
+      #   particle_present: True
+      #   particle_params:
+      #   system: 3
+      #   terrain_depression_depth: 0.1
+      #   terrain_depression_size: 3           # Length of the terrain grid (number of points)
+
+      # - name: central_depression_terrain
+      #   compliant: True
+      #   particle_present: True
+      #   system: 2
+      #   terrain_depression_depth: 0.05
+      #   terrain_depression_size: 3          
+      # - name: central_depression_terrain
+      #   compliant: True
+      #   particle_present: True
+      #   system: 2
+      #   terrain_depression_depth: 0.1
+      #   terrain_depression_size: 3           # Length of the terrain grid (number of points)
+
+  particles:
+    enabled: True
+    use_mesh_sampler: False
+    system1:
+      pbd_material_friction: 0.8                    # Friction value for particles
+      pbd_material_particle_friction_scale: 0.2     # Scale factor for particle-particle friction
+      pbd_material_adhesion: 0.00001                # Adhesion coefficient for particles
+      pbd_material_particle_adhesion_scale: 10000.0 # Scale factor for particle adhesion strength
+      pbd_material_adhesion_offset_scale: 1.2       # Offset scale for adhesion calculations
+      pbd_material_density: 1500                    # Density of particle material (kg/m³)
+
+      # Particle system parameters
+      particle_system_rest_offset: 0.04                 # Rest offset for particle collision
+      particle_system_solid_rest_offset: 0.03          # Solid rest offset (for rigid particle collision)
+      particle_system_contact_offset: 0.04              # Contact offset for particles
+      particle_system_particle_contact_offset: 0.08     # Contact offset specifically between particles
+      particle_system_max_velocity: 100.0               # Maximum allowable particle velocity
+      particle_system_max_neighborhood: 340             # Maximum number of neighboring particles to consider
+      particle_system_solver_position_iteration_count: 64 # Solver iteration count for particle position adjustments
+      particle_system_enable_ccd: True                  # Enable Continuous Collision Detection (CCD) for particles
+      particle_system_max_depenetration_velocity: 100.0 # Maximum velocity for depenetration corrections
+
+      # Particle grid generation parameters
+      particle_grid_jitter_factor: 0.2             # Random jitter factor for particle spacing (as a fraction of particle spacing)
+      particle_grid_self_collision: True           # Enable self-collision within the particle grid
+      particle_grid_fluid: False                   # Set to True if particles should behave like a fluid
+      particle_grid_particle_group: 0              # Group ID for particles, used for grouping behaviors
+      particle_grid_particle_mass: 0.0             # Mass of each particle (can be overridden by density)
+      particle_grid_density: 0.0                   # Density of particles (optional, overrides individual mass)
+      
+    system2:
+      pbd_material_friction: 0.8                    # Friction value for particles
+      pbd_material_particle_friction_scale: 0.2     # Scale factor for particle-particle friction
+      pbd_material_adhesion: 0.00001                # Adhesion coefficient for particles
+      pbd_material_particle_adhesion_scale: 10000.0 # Scale factor for particle adhesion strength
+      pbd_material_adhesion_offset_scale: 1.2       # Offset scale for adhesion calculations
+      pbd_material_density: 1500                    # Density of particle material (kg/m³)
+
+      # Particle system parameters
+      particle_system_rest_offset: 0.04                 # Rest offset for particle collision
+      particle_system_solid_rest_offset: 0.03          # Solid rest offset (for rigid particle collision)
+      particle_system_contact_offset: 0.04              # Contact offset for particles
+      particle_system_particle_contact_offset: 0.08     # Contact offset specifically between particles
+      particle_system_max_velocity: 100.0               # Maximum allowable particle velocity
+      particle_system_max_neighborhood: 340             # Maximum number of neighboring particles to consider
+      particle_system_solver_position_iteration_count: 64 # Solver iteration count for particle position adjustments
+      particle_system_enable_ccd: True                  # Enable Continuous Collision Detection (CCD) for particles
+      particle_system_max_depenetration_velocity: 100.0 # Maximum velocity for depenetration corrections
+
+      # Particle grid generation parameters
+      particle_grid_spacing: 0.2
+      particle_grid_jitter_factor: 0.2             # Random jitter factor for particle spacing (as a fraction of particle spacing)
+      particle_grid_self_collision: True           # Enable self-collision within the particle grid
+      particle_grid_fluid: False                   # Set to True if particles should behave like a fluid
+      particle_grid_particle_group: 0              # Group ID for particles, used for grouping behaviors      
+      particle_grid_particle_mass: 0.0             # Mass of each particle (can be overridden by density)
+      particle_grid_density: 0.0                   # Density of particles (optional, overrides individual mass)
+
+    system3:  # New system matching the Fluid Isosurface demo properties
+      pbd_material_friction: 0.1
+      pbd_material_cohesion: 0.01
+      pbd_material_viscosity: 0.0091
+      pbd_material_surface_tension: 0.0074
+      pbd_material_cfl_coefficient: 1.0
+
+      particle_system_particle_contact_offset: 0.05
+      particle_system_max_neighborhood: 96
+      particle_system_solver_position_iteration_count: 4
+      particle_system_max_velocity: 100.0 
+
+      # Grid generation parameters:
+      particle_grid_jitter_factor: 0.2
+      particle_grid_self_collision: True
+      particle_grid_fluid: True
+      particle_grid_particle_group: 0
+      particle_grid_particle_mass: 0.001
+      particle_grid_density: 0.0
+
+      #visualization
+      Anisotropy: False
+      Smoothing: False
+      Isosurface: False
+      Looks: False
+
+  material_randomization:
+    enabled: False
+    compliance:
+      enabled: False
+      stiffness:
+        soft: [0.1, 0.3]
+        hard: [0.5, 1.0]
+
+      damping:
+        soft: [0.05, 0.15]
+        hard: [0.2, 0.5]
+
+    particles:
+      enabled: False
+      system1:      
+        pbd_material_randomization:
+          weak:
+            pbd_material_particle_friction_scale: [0.1, 0.5]
+            pbd_material_particle_adhesion_scale: [5000, 10000]
+            pbd_material_density: [1000, 2000]
+          strong:
+            pbd_material_particle_friction_scale: [0.5, 1.0]
+            pbd_material_particle_adhesion_scale: [10000, 20000]
+            pbd_material_density: [1500, 3000]
+      system2:
+        pbd_material_randomization:
+          weak:
+            pbd_material_particle_friction_scale: [0.1, 0.4]
+            pbd_material_particle_adhesion_scale: [4000, 8000]
+            pbd_material_density: [900, 1800]
+          strong:
+            pbd_material_particle_friction_scale: [0.4, 0.9]
+            pbd_material_particle_adhesion_scale: [8000, 16000]
+            pbd_material_density: [1400, 2800]
 
   baseInitState:
     pos: [0.0, 0.0, 0.42] # x,y,z [m]
@@ -36,6 +220,11 @@ env:
     linear_x: [-1., 1.] # min max [m/s]
     linear_y: [-1., 1.]   # min max [m/s]
     yaw: [-3.14, 3.14]    # min max [rad/s]
+
+  limitCommandVelocityRanges:
+    linear_x: [-1., 1.]
+    linear_y: [-0.6, 0.6]
+    yaw: [-1, 1] # min max [rad/s]
 
   control:
     # PD Drive parameters:
