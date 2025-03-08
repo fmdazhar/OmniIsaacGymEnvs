@@ -13,6 +13,8 @@ env:
     staticFriction: 1.0  # [-]
     dynamicFriction: 1.0  # [-]
     restitution: 0.        # [-]
+    numLevels: 10
+    numTerrains: 10
     # rough terrain only:
     curriculum: False
     VelocityCurriculum : True
@@ -29,35 +31,37 @@ env:
         compliant: False
         count: 5
         level: 0
-      - name: rough
-        compliant: True
-        particle_present: False
-        count: 5
-        level: 0
 
-      - name: rough
-        compliant: True
-        particle_present: False
-        count: 5
-        level: 1
 
-      - name: flat
-        compliant: True
-        particle_present: False
-        count: 1
-      - name: flat
-        compliant: True
-        particle_present: False
-        count: 1
+      # - name: rough
+      #   compliant: True
+      #   particle_present: False
+      #   count: 5
+      #   level: 0
 
-      - name: central_depression_terrain
-        compliant: True
-        count: 2
-        level: 0
-        particle_present: True
-        system: 1
-        terrain_depression_depth: 0.13
-        terrain_depression_size: 4           # Length of the terrain grid (number of points)
+      # - name: rough
+      #   compliant: True
+      #   particle_present: False
+      #   count: 5
+      #   level: 1
+
+      # - name: flat
+      #   compliant: True
+      #   particle_present: False
+      #   count: 1
+      # - name: flat
+      #   compliant: True
+      #   particle_present: False
+      #   count: 1
+
+      # - name: central_depression_terrain
+      #   compliant: True
+      #   count: 2
+      #   level: 0
+      #   particle_present: True
+      #   system: 1
+      #   terrain_depression_depth: 0.13
+      #   terrain_depression_size: 4           # Length of the terrain grid (number of points)
       # - name: central_depression_terrain
       #   compliant: True
       #   count: 1
@@ -174,40 +178,7 @@ env:
       Isosurface: False
       Looks: False
 
-  material_randomization:
-    enabled: False
-    compliance:
-      enabled: False
-      stiffness:
-        soft: [0.1, 0.3]
-        hard: [0.5, 1.0]
-
-      damping:
-        soft: [0.05, 0.15]
-        hard: [0.2, 0.5]
-
-    particles:
-      enabled: False
-      system1:      
-        pbd_material_randomization:
-          weak:
-            pbd_material_particle_friction_scale: [0.1, 0.5]
-            pbd_material_particle_adhesion_scale: [5000, 10000]
-            pbd_material_density: [1000, 2000]
-          strong:
-            pbd_material_particle_friction_scale: [0.5, 1.0]
-            pbd_material_particle_adhesion_scale: [10000, 20000]
-            pbd_material_density: [1500, 3000]
-      system2:
-        pbd_material_randomization:
-          weak:
-            pbd_material_particle_friction_scale: [0.1, 0.4]
-            pbd_material_particle_adhesion_scale: [4000, 8000]
-            pbd_material_density: [900, 1800]
-          strong:
-            pbd_material_particle_friction_scale: [0.4, 0.9]
-            pbd_material_particle_adhesion_scale: [8000, 16000]
-            pbd_material_density: [1400, 2800]
+  
 
   baseInitState:
     pos: [0.0, 0.0, 0.42] # x,y,z [m]
@@ -272,8 +243,13 @@ env:
       stand_still : -0.0
       dof_pos_limits: -10.0
 
+    onlyPositiveRewards: False
     baseHeightTarget : 0.52
     softDofPositionLimit: 0.9
+    softDofVelLimit: 0.5
+    softTorqueLimit: 0.5
+    trackingSigma: 0.1
+    maxContactForce: 1000.0
 
     # normalization
     linearVelocityScale: 2.0
@@ -283,7 +259,7 @@ env:
     heightMeasurementScale: 5.0
 
     # noise 
-    addNoise: true
+    addNoise: False
     noiseLevel: 1.0 # scales other values
     dofPositionNoise: 0.01
     dofVelocityNoise: 1.5
@@ -307,6 +283,9 @@ env:
     motorOffsetRange : [0.0, 0.0]
     KpFactorRange : [0.8, 1.3]
     KdFactorRange : [0.5, 1.5]
+    gravityRange : [-1.0, 1.0]
+    gravityRandIntervalSecs : 7
+    randomizeGravity: False
     randomizeFriction: False
     randomizeCOM: False
     randomizeAddedMass: False
@@ -314,6 +293,29 @@ env:
     randomizeMotorOffset: False
     randomizeKpFactor: False
     randomizeKdFactor: False
+
+    material_randomization:
+      enabled: False
+      compliance:
+        enabled: False
+        interval: 50
+        deformation: [0.1, 0.25]
+
+      particles:
+        enabled: False
+        interval: 50
+        systems:
+          system1: 
+            enabled: False
+            pbd_material_particle_friction_scale: [0.1, 0.5]
+            pbd_material_particle_adhesion_scale: [5000, 10000]
+            pbd_material_density: [1000, 2000]
+
+          system2:
+            enabled: False
+            pbd_material_particle_friction_scale: [0.1, 0.4]
+            pbd_material_particle_adhesion_scale: [4000, 8000]
+            pbd_material_density: [900, 1800]
 
 sim:
   dt: 0.005

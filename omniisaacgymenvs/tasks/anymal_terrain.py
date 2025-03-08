@@ -31,6 +31,8 @@ import math
 import numpy as np
 import torch
 import omni
+import carb
+
 from omni.isaac.core.simulation_context import SimulationContext
 from omni.isaac.core.utils.prims import get_prim_at_path, find_matching_prim_paths, is_prim_path_valid
 from omni.isaac.core.utils.stage import get_current_stage
@@ -88,7 +90,6 @@ class AnymalTerrainTask(RLTask):
         self.created_particle_systems = {}
         self.created_materials = {}
         self.particle_instancers_by_level = {}
-
         self.total_particles = 0    # Initialize a counter for total particles
 
         # joint positions offsets
@@ -117,9 +118,14 @@ class AnymalTerrainTask(RLTask):
         # reward params
         self.base_height_target = self._task_cfg["env"]["learn"]["baseHeightTarget"]
         self.soft_dof_pos_limit = self._task_cfg["env"]["learn"]["softDofPositionLimit"]
+        self.soft_dof_vel_limit = self._task_cfg["env"]["learn"]["softDofVelLimit"]
+        self.soft_torque_limit = self._task_cfg["env"]["learn"]["softTorqueLimit"]
+        self.tracking_sigma = self._task_cfg["env"]["learn"]["trackingSigma"]
+        self.max_contact_force = self._task_cfg["env"]["learn"]["maxContactForce"]
+        self.only_positive_rewards = self._task_cfg["env"]["learn"]["onlyPositiveRewards"]
         
         # reward scales
-        self.rew_scales = self._task_cfg["env"]["learn"]["scales"]
+        self.reward_scales = self._task_cfg["env"]["learn"]["scales"]
 
         # command ranges
         self.command_x_range = self._task_cfg["env"]["randomCommandVelocityRanges"]["linear_x"]
@@ -149,6 +155,7 @@ class AnymalTerrainTask(RLTask):
         self.motor_offset_range = self._task_cfg["env"]["randomizationRanges"]["motorOffsetRange"]
         self.Kp_factor_range = self._task_cfg["env"]["randomizationRanges"]["KpFactorRange"]
         self.Kd_factor_range = self._task_cfg["env"]["randomizationRanges"]["KdFactorRange"]
+        self.gravity_range = self._task_cfg["env"]["randomizationRanges"]["gravityRange"]
 
         self.friction_scale, self.friction_shift = get_scale_shift(self.friction_range)
         self.restitution_scale, self.restitution_shift = get_scale_shift(self.restitution_range)
@@ -162,6 +169,8 @@ class AnymalTerrainTask(RLTask):
         self.max_episode_length_s = self._task_cfg["env"]["learn"]["episodeLength_s"]
         self.max_episode_length = int(self.max_episode_length_s / self.dt + 0.5)
         self.push_interval = int(self._task_cfg["env"]["learn"]["pushInterval_s"] / self.dt + 0.5)
+        self.pbd_randomize_interval = int(self._task_cfg["env"]["randomizationRanges"]["material_randomization"]["particles"]["interval"] / self.dt + 0.5)
+        self.gravity_randomize_interval = int(self._task_cfg["env"]["randomizationRanges"]["gravityRandIntervalSecs"] / self.dt + 0.5)
         self.Kp = self._task_cfg["env"]["control"]["stiffness"]
         self.Kd = self._task_cfg["env"]["control"]["damping"]
         self.curriculum = self._task_cfg["env"]["terrain"]["curriculum"]
@@ -184,6 +193,9 @@ class AnymalTerrainTask(RLTask):
 
         self._task_cfg["sim"]["add_ground_plane"] = False
         self._particle_cfg = self._task_cfg["env"]["particles"]
+        terrain_types = self._task_cfg["env"]["terrain"].get("terrain_types", [])
+        has_particles = any(tt.get("particle_present", False) for tt in terrain_types)
+        self._particles_active = has_particles and self._particle_cfg.get("enabled", False) and not self.curriculum
 
     def _get_noise_scale_vec(self, cfg):
 
@@ -275,7 +287,7 @@ class AnymalTerrainTask(RLTask):
         self._anymals = A1View(
             prim_paths_expr="/World/envs/.*/a1", name="a1_view", track_contact_forces=True
         )
-        if self._particle_cfg["enabled"]:
+        if self._particles_active:
             self.create_particle_systems()
             self.particle_system_view = ParticleSystemView(prim_paths_expr="/World/particleSystem/*")
             scene.add(self.particle_system_view)
@@ -306,7 +318,7 @@ class AnymalTerrainTask(RLTask):
         self._anymals = A1(
             prim_paths_expr="/World/envs/.*/a1", name="a1_view", track_contact_forces=True
         )
-        if self._particle_cfg["enabled"]:
+        if self._particles_active:
             self.create_particle_systems()
             self.particle_system_view = ParticleSystemView(prim_paths_expr="/World/particleSystem/*")
             scene.add(self.particle_system_view)  
@@ -318,15 +330,11 @@ class AnymalTerrainTask(RLTask):
 
     def get_terrain(self, create_mesh=True):
         self.env_origins = torch.zeros((self.num_envs, 3), device=self.device, requires_grad=False)
-        
-        if not self.curriculum:
-            self._task_cfg["env"]["terrain"]["maxInitMapLevel"] = self.terrain.env_rows - 1
-
-        self.terrain_levels = torch.randint(0, self._task_cfg["env"]["terrain"]["maxInitMapLevel"] + 1, (self.num_envs,), device=self.device, dtype=torch.long)
-
+        self.terrain_levels = torch.zeros((self.num_envs,), device=self.device, dtype=torch.long)
         self._create_trimesh(create_mesh=create_mesh)
         self.terrain_origins = torch.from_numpy(self.terrain.env_origins).to(self.device).to(torch.float)
-        self.terrain_details = torch.tensor(self.terrain.terrain_details, dtype=torch.float, device=self.device)
+        if self.curriculum:
+            self.terrain_details = torch.tensor(self.terrain.terrain_details, dtype=torch.float, device=self.device)
 
     def get_anymal(self):
         anymal_translation = torch.tensor([0.0, 0.0, 0.42])
@@ -349,6 +357,35 @@ class AnymalTerrainTask(RLTask):
             angle = self.named_default_joint_angles[name]
             self.default_dof_pos[:, i] = angle
 
+    def _randomize_dof_props(self, env_ids):
+        if self._task_cfg["env"]["randomizationRanges"]["randomizeMotorStrength"]:
+            self.motor_strengths[env_ids, :] = torch.rand(len(env_ids), dtype=torch.float, device=self.device,
+                                                     requires_grad=False).unsqueeze(1) * (
+                                                  self.motor_strength_range[1] - self.motor_strength_range[0]) + self.motor_strength_range[0]
+        if self._task_cfg["env"]["randomizationRanges"]["randomizeMotorOffset"]:
+            self.motor_offsets[env_ids, :] = torch.rand(len(env_ids), self.num_dof, dtype=torch.float,
+                                                        device=self.device, requires_grad=False) * (
+                                                     self.motor_offset_range[1] - self.motor_offset_range[0]) + self.motor_offset_range[0]
+        if self._task_cfg["env"]["randomizationRanges"]["randomizeKpFactor"]:
+            self.Kp_factors[env_ids, :] = torch.rand(len(env_ids), dtype=torch.float, device=self.device,
+                                                     requires_grad=False).unsqueeze(1) * (
+                                                  self.Kp_factor_range[1] - self.Kp_factor_range[0]) + self.Kp_factor_range[0]
+        if self._task_cfg["env"]["randomizationRanges"]["randomizeKdFactor"]:
+            self.Kd_factors[env_ids, :] = torch.rand(len(env_ids), dtype=torch.float, device=self.device,
+                                                     requires_grad=False).unsqueeze(1) * (
+                                                  self.Kd_factor_range[1] - self.Kd_factor_range[0]) + self.Kd_factor_range[0]
+        if self._task_cfg["env"]["randomizationRanges"]["randomizeGravity"]:
+            external_force = torch.rand(3, dtype=torch.float, device=self.device,
+                                    requires_grad=False) * (self.gravity_range[1] - self.gravity_range[0]) + self.gravity_range[0]
+            self.gravities[:, :] = external_force.unsqueeze(0)
+    
+    
+    def _randomize_gravity(self):
+        gravity = self.gravities[0, :] + torch.Tensor([0, 0, -9.8]).to(self.device)
+        self.gravity_vec[:, :] = gravity.unsqueeze(0) / torch.norm(gravity)
+        self.world._physics_sim_view.set_gravity(
+            carb.Float3(gravity[0], gravity[1], gravity[2])
+        )
 
     def _set_mass(self, view, env_ids, distribution="uniform" , operation="additive"):
         """Update material properties for a given asset."""
@@ -433,63 +470,53 @@ class AnymalTerrainTask(RLTask):
         set_coms(coms, ori)
         print(f"Coms updated: {coms}")
 
-    def _randomize_dof_props(self, env_ids):
-        if self._task_cfg["env"]["randomizationRanges"]["randomizeMotorStrength"]:
-            self.motor_strengths[env_ids, :] = torch.rand(len(env_ids), dtype=torch.float, device=self.device,
-                                                     requires_grad=False).unsqueeze(1) * (
-                                                  self.motor_strength_range[1] - self.motor_strength_range[0]) + self.motor_strength_range[0]
-        if self._task_cfg["env"]["randomizationRanges"]["randomizeMotorOffset"]:
-            self.motor_offsets[env_ids, :] = torch.rand(len(env_ids), self.num_dof, dtype=torch.float,
-                                                        device=self.device, requires_grad=False) * (
-                                                     self.motor_offset_range[1] - self.motor_offset_range[0]) + self.motor_offset_range[0]
-        if self._task_cfg["env"]["randomizationRanges"]["randomizeKpFactor"]:
-            self.Kp_factors[env_ids, :] = torch.rand(len(env_ids), dtype=torch.float, device=self.device,
-                                                     requires_grad=False).unsqueeze(1) * (
-                                                  self.Kp_factor_range[1] - self.Kp_factor_range[0]) + self.Kp_factor_range[0]
-        if self._task_cfg["env"]["randomizationRanges"]["randomizeKdFactor"]:
-            self.Kd_factors[env_ids, :] = torch.rand(len(env_ids), dtype=torch.float, device=self.device,
-                                                     requires_grad=False).unsqueeze(1) * (
-                                                  self.Kd_factor_range[1] - self.Kd_factor_range[0]) + self.Kd_factor_range[0]
 
     def set_compliance(self, env_ids=None, device="cpu"):
-        # 1. Resolve env_ids properly
+        # If no env_ids are provided, do nothing.
         if env_ids is None:
-            env_ids = torch.arange(self._num_envs, dtype=torch.int64, device=device)
-        else:
-            env_ids = env_ids.to(device)
-        
-        # 2. Compute stiffness/damping for all envs just once
-        deflection = 1.25e-1
-        stiffness = (self.total_masses * 9.81) / deflection
-        damping = 0.1 * stiffness
-        
-        # 3. Zero out stiffness/damping for non-env_ids
-        mask = torch.ones(self._num_envs, dtype=torch.bool, device=device)
-        mask[env_ids] = False  # True where not in env_ids
-        stiffness[mask] = 0.0
-        damping[mask] = 0.0
-        self.stiffness[:, 0] = (torch.from_numpy(stiffness).float().to(self.device))
-        self.damping[:, 0]   = (torch.from_numpy(damping).float().to(self.device))
-        print(f"Stiffness: {self.stiffness}")
-        print(f"Damping: {self.damping}")
+            env_ids = torch.nonzero(self.compliance, as_tuple=False).flatten()
 
-        # 4. Collect prim references (once)
+        if len(env_ids) == 0:
+            return
+        # Ensure env_ids is on the correct device.
+        env_ids = env_ids.to(device)
+
+        # Retrieve deformation bounds from the configuration.
+        # For example, from: self._task_cfg["env"]["randomizationRanges"]["material_randomization"]["compliance"]["deformation"]
+        deformation_bounds = self._task_cfg["env"]["randomizationRanges"]["material_randomization"]["compliance"]["deformation"]
+        deformation_low, deformation_high = deformation_bounds[0], deformation_bounds[1]
+
+        # Sample a deflection value for each environment in env_ids.
+        num_envs = len(env_ids)
+        deformations = torch.rand(num_envs, device=device) * (deformation_high - deformation_low) + deformation_low
+
+        # Compute stiffness and damping per environment.
+        stiffness_values = (self.total_masses[env_ids] * 9.81) / deformations
+        damping_values = 0.1 * stiffness_values
+
+        # Initialize (or update) the compliance tensors.
+        self.stiffness[env_ids, 0] = stiffness_values.to(self.device)
+        self.damping[env_ids, 0] = damping_values.to(self.device)
+        # print(f"Stiffness set to: {self.stiffness[env_ids]}")
+        # print(f"Damping set to: {self.damping[env_ids]}")
+
+        # Collect prim references (once)
         _prim_paths = find_matching_prim_paths(self._anymals._foot_material_path)
         self._prims = [get_prim_at_path(path) for path in _prim_paths]
         self._material_apis = [None] * self._num_envs
-        # 5. Ensure we have PhysxMaterialAPI for each env exactly once
+
+        # Ensure we have PhysxMaterialAPI for each environment exactly once.
         for i in range(self._num_envs):
             if self._material_apis[i] is None:
                 if self._prims[i].HasAPI(PhysxSchema.PhysxMaterialAPI):
                     self._material_apis[i] = PhysxSchema.PhysxMaterialAPI(self._prims[i])
                 else:
                     self._material_apis[i] = PhysxSchema.PhysxMaterialAPI.Apply(self._prims[i])
-        
-        # 6. Assign the (possibly zeroed) stiffness/damping in one pass
-        for i in range(self._num_envs):
-            self._material_apis[i].CreateCompliantContactStiffnessAttr().Set(float(stiffness[i]))
-            self._material_apis[i].CreateCompliantContactDampingAttr().Set(float(damping[i]))
 
+        # Assign the stiffness and damping values to each environment.
+        for i in range(self._num_envs):
+            self._material_apis[i].CreateCompliantContactStiffnessAttr().Set(float(self.stiffness[i, 0]))
+            self._material_apis[i].CreateCompliantContactDampingAttr().Set(float(self.damping[i, 0]))
 
     def store_pbd_params(self):
         """
@@ -520,26 +547,125 @@ class AnymalTerrainTask(RLTask):
             # (Adjust the defaults and parameter names to match your usage)
             mat_cfg = self._particle_cfg[system_str]
             friction         = mat_cfg.get("pbd_material_friction", 0.0)
+            particle_friction_scale   = mat_cfg.get("pbd_material_particle_friction_scale", 0.0)
+            adhesion          = mat_cfg.get("pbd_material_adhesion", 0.0)
+            particle_adhesion_scale  = mat_cfg.get("pbd_material_particle_adhesion_scale", 0.0)
             damping          = mat_cfg.get("pbd_material_damping", 0.0)
-            viscosity        = mat_cfg.get("pbd_material_viscosity", 0.0)
-            density          = mat_cfg.get("pbd_material_density", 0.0)
-            surface_tension  = mat_cfg.get("pbd_material_surface_tension", 0.0)
-            cohesion         = mat_cfg.get("pbd_material_cohesion", 0.0)
-            adhesion         = mat_cfg.get("pbd_material_adhesion", 0.0)
-            cfl_coefficient  = mat_cfg.get("pbd_material_cfl_coefficient", 0.0)
+            density         = mat_cfg.get("pbd_material_density", 0.0)
 
             # Find which environments belong to this system
             env_ids = torch.nonzero(self.system_idx == sid, as_tuple=True)[0]
 
             # Write the parameters into self.pbd_parameters for these envs
             self.pbd_parameters[env_ids, 0] = friction
-            self.pbd_parameters[env_ids, 1] = damping
-            self.pbd_parameters[env_ids, 2] = viscosity
-            self.pbd_parameters[env_ids, 3] = density
-            self.pbd_parameters[env_ids, 4] = surface_tension
-            self.pbd_parameters[env_ids, 5] = cohesion
-            self.pbd_parameters[env_ids, 6] = adhesion
-            self.pbd_parameters[env_ids, 7] = cfl_coefficient
+            self.pbd_parameters[env_ids, 1] = particle_friction_scale
+            self.pbd_parameters[env_ids, 2] = adhesion
+            self.pbd_parameters[env_ids, 3] = particle_adhesion_scale
+            self.pbd_parameters[env_ids, 4] = damping
+            self.pbd_parameters[env_ids, 5] = density
+
+    def randomize_pbd_material(self):
+        """
+        Retrieves an existing PBD material via PhysxSchema and updates its parameters using randomization.
+        
+        Args:
+            system_name: A string (e.g. "system1") identifying the system.
+            config: A dict of fixed values and optional range keys. For example:
+                {
+                    "pbd_material_friction": 0.8,
+                    "pbd_material_friction_range": [0.5, 1.0],
+                    ...
+                }
+        """
+        # Get the particles material randomization config from randomizationRanges.
+        mat_rand_cfg = self._task_cfg["env"]["randomizationRanges"].get("material_randomization", {})
+        if not mat_rand_cfg.get("enabled", False):
+            # Material randomization is disabled.
+            return
+
+        particles_rand_cfg = mat_rand_cfg.get("particles", {}).get("systems", {})
+
+        for system_name, config in particles_rand_cfg.items():
+            if not config.get("enabled", False):
+                # System Material randomization is disabled.
+                return
+            material_key = f"pbd_material_{system_name}"
+            # Check if the material has been created already.
+            if material_key in self.created_materials:
+                # Randomize the material parameters for this system.
+                pbd_material_path = f"/World/pbdmaterial_{system_name}"
+                material_api = PhysxSchema.PhysxPBDMaterialAPI.Get(self._stage, pbd_material_path)
+                if not material_api:
+                    print(f"[ERROR] Could not find PBD material at {pbd_material_path}")
+                    return False
+
+                def sample_param(param_name):
+                    # If a range key is provided, sample a value between low and high.
+                    range_key = f"{param_name}_range"
+                    if range_key in config:
+                        low, high = config[range_key]
+                        return random.uniform(low, high)
+                    # Otherwise, return the fixed value from config, if provided.
+                    return config.get(param_name, None)
+
+                # List the parameters to update.
+                parameters = [
+                    "pbd_material_friction",
+                    "pbd_material_particle_friction_scale",
+                    "pbd_material_damping",
+                    "pbd_material_viscosity",
+                    "pbd_material_vorticity_confinement",
+                    "pbd_material_surface_tension",
+                    "pbd_material_cohesion",
+                    "pbd_material_adhesion",
+                    "pbd_material_particle_adhesion_scale",
+                    "pbd_material_adhesion_offset_scale",
+                    "pbd_material_gravity_scale",
+                    "pbd_material_lift",
+                    "pbd_material_drag",
+                    "pbd_material_density",
+                    "pbd_material_cfl_coefficient",
+                ]
+
+                for param in parameters:
+                    value = sample_param(param)
+                    if value is not None:
+                        if param == "pbd_material_friction":
+                            material_api.CreateFrictionAttr().Set(value)
+                        elif param == "pbd_material_particle_friction_scale":
+                            material_api.CreateParticleFrictionScaleAttr().Set(value)
+                        elif param == "pbd_material_damping":
+                            material_api.CreateDampingAttr().Set(value)
+                        elif param == "pbd_material_viscosity":
+                            material_api.CreateViscosityAttr().Set(value)
+                        elif param == "pbd_material_vorticity_confinement":
+                            material_api.CreateVorticityConfinementAttr().Set(value)
+                        elif param == "pbd_material_surface_tension":
+                            material_api.CreateSurfaceTensionAttr().Set(value)
+                        elif param == "pbd_material_cohesion":
+                            material_api.CreateCohesionAttr().Set(value)
+                        elif param == "pbd_material_adhesion":
+                            material_api.CreateAdhesionAttr().Set(value)
+                        elif param == "pbd_material_particle_adhesion_scale":
+                            material_api.CreateParticleAdhesionScaleAttr().Set(value)
+                        elif param == "pbd_material_adhesion_offset_scale":
+                            material_api.CreateAdhesionOffsetScaleAttr().Set(value)
+                        elif param == "pbd_material_gravity_scale":
+                            material_api.CreateGravityScaleAttr().Set(value)
+                        elif param == "pbd_material_lift":
+                            material_api.CreateLiftAttr().Set(value)
+                        elif param == "pbd_material_drag":
+                            material_api.CreateDragAttr().Set(value)
+                        elif param == "pbd_material_density":
+                            material_api.CreateDensityAttr().Set(value)
+                        elif param == "pbd_material_cfl_coefficient":
+                            material_api.CreateCflCoefficientAttr().Set(value)
+                
+                print(f"[INFO] Updated PBD material at {pbd_material_path} with randomized parameters.")
+                
+            else:
+                print(f"[WARN] Material {material_key} not found; skipping randomization.")
+
 
     def post_reset(self):
         self.base_init_state = torch.tensor(
@@ -561,6 +687,8 @@ class AnymalTerrainTask(RLTask):
             device=self.device,
             requires_grad=False,
         )
+        self.gravities = torch.zeros(self.num_envs, 3, dtype=torch.float, device=self.device,
+                                requires_grad=False)
         self.gravity_vec = torch.tensor(
             get_axis_params(-1.0, self.up_axis_idx), dtype=torch.float, device=self.device
         ).repeat((self.num_envs, 1))
@@ -592,6 +720,39 @@ class AnymalTerrainTask(RLTask):
         self.bx_end   = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
         self.by_start = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
         self.by_end   = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
+
+
+        if not self.curriculum:
+            for i in range(self.num_envs):
+                self.env_origins[i] = self.terrain_origins[self.terrain_levels[i], self.terrain_types[i]]
+        else:
+            for idx in env_ids:
+                lvl = int(self.terrain_levels[idx].item())
+                candidate_mask = (self.terrain_details[:, 1] == lvl)
+                candidate_terrains = self.terrain_details[candidate_mask]
+                if candidate_terrains.shape[0] == 0:
+                    raise ValueError(f"No terrain blocks found with level={lvl}")
+
+                rand_idx = torch.randint(0, candidate_terrains.shape[0], (1,), device=self.device)
+                row = int(candidate_terrains[rand_idx, 2].item())
+                col = int(candidate_terrains[rand_idx, 3].item())
+                is_compliant = int(candidate_terrains[rand_idx, 6].item())
+                system = int(candidate_terrains[rand_idx, 7].item())
+
+                # bounding indices
+                bx0 = candidate_terrains[rand_idx, 10].item()
+                bx1 = candidate_terrains[rand_idx, 11].item()
+                by0 = candidate_terrains[rand_idx, 12].item()
+                by1 = candidate_terrains[rand_idx, 13].item()
+
+                self.bx_start[idx] = bx0
+                self.bx_end[idx]   = bx1
+                self.by_start[idx] = by0
+                self.by_end[idx]   = by1
+
+                self.compliance[idx] = bool(is_compliant)
+                self.system_idx[idx] = system
+                self.env_origins[idx] = self.terrain_origins[row, col]
 
         self.num_dof = self._anymals.num_dof
         self.joint_pos_target = torch.zeros(self.num_envs, self.num_dof, dtype=torch.float,
@@ -631,7 +792,7 @@ class AnymalTerrainTask(RLTask):
         self.Kd_factors = torch.ones(self.num_envs, 1, dtype=torch.float, device=self.device, requires_grad=False)
         self.stiffness = torch.zeros(self.num_envs, 1, dtype=torch.float, device=self.device, requires_grad=False)
         self.damping = torch.zeros(self.num_envs, 1, dtype=torch.float, device=self.device, requires_grad=False)
-        self.pbd_parameters = torch.zeros((self.num_envs, 8), device=self.device)
+        self.pbd_parameters = torch.zeros((self.num_envs, 6), device=self.device)
         
         # Get joint limits
         dof_limits = self._anymals.get_dof_limits()
@@ -658,8 +819,8 @@ class AnymalTerrainTask(RLTask):
         if self._task_cfg["env"]["randomizationRanges"]["randomizeFriction"]:
             self._set_friction(self._anymals._foot, env_ids=indices)
 
-        body_masses = self._anymals.get_body_masses().clone().cpu().numpy()
-        self.total_masses = np.sum(body_masses, axis=1)
+        body_masses = self._anymals.get_body_masses().clone()  # already a torch tensor
+        self.total_masses = torch.sum(body_masses, dim=1)
 
         indices = torch.arange(self._num_envs, dtype=torch.int64, device=self._device)
         self.reset_idx(indices)
@@ -682,10 +843,8 @@ class AnymalTerrainTask(RLTask):
 
         self.update_terrain_level(env_ids)
 
-        ids = torch.nonzero(self.compliance, as_tuple=False).flatten()
-        if len(ids) > 0
-            self.set_compliance(env_ids=ids)
-        self.store_pbd_params()
+        # self.set_compliance()
+        # self.store_pbd_params()
 
         self.base_pos[env_ids] = self.base_init_state[0:3]
         self.base_pos[env_ids, 0:3] += self.env_origins[env_ids]
@@ -734,12 +893,16 @@ class AnymalTerrainTask(RLTask):
             )
             self.episode_sums[key][env_ids] = 0.0
         self.extras["episode"]["terrain_level"] = torch.mean(self.terrain_levels.float())
-        self.extras["env_bins"] = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+        self.extras["time_outs"] = self.time_out_buf
+        self.extras["episode"]["max_command_x"] = self.command_x_range[1]
+
 
     def update_terrain_level(self, env_ids):
         if not self.init_done or not self.curriculum:
             # do not change on initial reset
             return
+            # Save a copy of the current terrain levels for the specified env_ids
+        old_levels = self.terrain_levels[env_ids].clone()
         root_pos, _ = self._anymals.get_world_poses(clone=False)
         distance = torch.norm(root_pos[env_ids, :2] - self.env_origins[env_ids, :2], dim=1)
         self.terrain_levels[env_ids] -= 1 * (
@@ -748,33 +911,38 @@ class AnymalTerrainTask(RLTask):
         self.terrain_levels[env_ids] += 1 * (distance > self.terrain.env_length / 2)
         self.terrain_levels[env_ids] = torch.clip(self.terrain_levels[env_ids], 0) % self.terrain.env_rows
         # Sample each environment's terrain block from terrain_details
-        for idx in env_ids:
-            lvl = int(self.terrain_levels[idx].item())
-            candidate_mask = (self.terrain_details[:, 1] == lvl)
-            candidate_terrains = self.terrain_details[candidate_mask]
-            if candidate_terrains.shape[0] == 0:
-                raise ValueError(f"No terrain blocks found with level={lvl}")
+        if not torch.equal(self.terrain_levels[env_ids], old_levels):            
+            for idx in env_ids:
+                lvl = int(self.terrain_levels[idx].item())
+                candidate_mask = (self.terrain_details[:, 1] == lvl)
+                candidate_terrains = self.terrain_details[candidate_mask]
+                if candidate_terrains.shape[0] == 0:
+                    raise ValueError(f"No terrain blocks found with level={lvl}")
 
-            rand_idx = torch.randint(0, candidate_terrains.shape[0], (1,), device=self.device)
-            row = int(candidate_terrains[rand_idx, 2].item())
-            col = int(candidate_terrains[rand_idx, 3].item())
-            is_compliant = int(candidate_terrains[rand_idx, 6].item())
-            system = int(candidate_terrains[rand_idx, 7].item())
+                rand_idx = torch.randint(0, candidate_terrains.shape[0], (1,), device=self.device)
+                row = int(candidate_terrains[rand_idx, 2].item())
+                col = int(candidate_terrains[rand_idx, 3].item())
+                is_compliant = int(candidate_terrains[rand_idx, 6].item())
+                system = int(candidate_terrains[rand_idx, 7].item())
 
-            # bounding indices
-            bx0 = candidate_terrains[rand_idx, 10].item()
-            bx1 = candidate_terrains[rand_idx, 11].item()
-            by0 = candidate_terrains[rand_idx, 12].item()
-            by1 = candidate_terrains[rand_idx, 13].item()
+                # bounding indices
+                bx0 = candidate_terrains[rand_idx, 10].item()
+                bx1 = candidate_terrains[rand_idx, 11].item()
+                by0 = candidate_terrains[rand_idx, 12].item()
+                by1 = candidate_terrains[rand_idx, 13].item()
 
-            self.bx_start[idx] = bx0
-            self.bx_end[idx]   = bx1
-            self.by_start[idx] = by0
-            self.by_end[idx]   = by1
+                self.bx_start[idx] = bx0
+                self.bx_end[idx]   = bx1
+                self.by_start[idx] = by0
+                self.by_end[idx]   = by1
 
-            self.compliance[idx] = bool(is_compliant)
-            self.system_idx[idx] = system
-            self.env_origins[idx] = self.terrain_origins[row, col]
+                self.compliance[idx] = bool(is_compliant)
+                self.system_idx[idx] = system
+                self.env_origins[idx] = self.terrain_origins[row, col]
+
+            # Update compliance and PBD parameters for the environments that changed
+            self.set_compliance()
+            self.store_pbd_params()
 
     def refresh_dof_state_tensors(self):
         self.dof_pos = self._anymals.get_joint_positions(clone=False)
@@ -823,6 +991,9 @@ class AnymalTerrainTask(RLTask):
             self.common_step_counter += 1
             if self.common_step_counter % self.push_interval == 0:
                 self.push_robots()
+            if self.common_step_counter % self.gravity_randomize_interval == 0:
+                self._randomize_gravity()
+            
 
             # prepare quantities
             self.base_lin_vel = quat_rotate_inverse(self.base_quat, self.base_velocities[:, 0:3])
@@ -859,13 +1030,7 @@ class AnymalTerrainTask(RLTask):
             torch.ones_like(self.timeout_buf),
             torch.zeros_like(self.timeout_buf),
         )
-        thigh_contact = (
-            torch.norm(self.thigh_contact_forces, dim=-1)
-            > 1.0
-        )
-        self.has_fallen = (torch.norm(self.base_contact_forces, dim=1) > 1.0) | (
-            torch.sum(thigh_contact, dim=-1) > 1.0
-        )
+        self.has_fallen = (torch.norm(self.base_contact_forces, dim=1) > 1.0) 
         self.reset_buf = self.has_fallen.clone()
         self.reset_buf = torch.where(self.timeout_buf.bool(), torch.ones_like(self.reset_buf), self.reset_buf)
         
@@ -917,80 +1082,13 @@ class AnymalTerrainTask(RLTask):
             rew = self.reward_functions[i]() * self.reward_scales[name]
             self.rew_buf += rew
             self.episode_sums[name] += rew
-        if self.cfg.rewards.only_positive_rewards:
+        if self.only_positive_rewards:
             self.rew_buf[:] = torch.clip(self.rew_buf[:], min=0.)
         # add termination reward after clipping
         if "termination" in self.reward_scales:
             rew = self._reward_termination() * self.reward_scales["termination"]
             self.rew_buf += rew
             self.episode_sums["termination"] += rew
-    
-    def calculate_metrics(self):
-        # velocity tracking reward
-        lin_vel_error = torch.sum(torch.square(self.commands[:, :2] - self.base_lin_vel[:, :2]), dim=1)
-        ang_vel_error = torch.square(self.commands[:, 2] - self.base_ang_vel[:, 2])
-        rew_lin_vel_xy = torch.exp(-lin_vel_error / 0.25) * self.rew_scales["lin_vel_xy"]
-        rew_ang_vel_z = torch.exp(-ang_vel_error / 0.25) * self.rew_scales["ang_vel_z"]
-
-        # other base velocity penalties
-        rew_lin_vel_z = torch.square(self.base_lin_vel[:, 2]) * self.rew_scales["lin_vel_z"]
-        rew_ang_vel_xy = torch.sum(torch.square(self.base_ang_vel[:, :2]), dim=1) * self.rew_scales["ang_vel_xy"]
-
-        # orientation penalty
-        rew_orient = torch.sum(torch.square(self.projected_gravity[:, :2]), dim=1) * self.rew_scales["orient"]
-
-        # base height penalty
-        rew_base_height = torch.square(self.base_pos[:, 2] - 0.52) * self.rew_scales["base_height"]
-
-        # torque penalty
-        rew_torque = torch.sum(torch.square(self.torques), dim=1) * self.rew_scales["torque"]
-
-        # joint acc penalty
-        rew_joint_acc = torch.sum(torch.square(self.last_dof_vel - self.dof_vel), dim=1) * self.rew_scales["joint_acc"]
-
-        # fallen over penalty
-        rew_fallen_over = self.has_fallen * self.rew_scales["fallen_over"]
-
-        # action rate penalty
-        rew_action_rate = (
-            torch.sum(torch.square(self.last_actions - self.actions), dim=1) * self.rew_scales["action_rate"]
-        )
-
-        # cosmetic penalty for hip motion
-        rew_hip = (
-            torch.sum(torch.abs(self.dof_pos[:, 0:4] - self.default_dof_pos[:, 0:4]), dim=1) * self.rew_scales["hip"]
-        )
-
-        # total reward
-        self.rew_buf = (
-            rew_lin_vel_xy
-            + rew_ang_vel_z
-            + rew_lin_vel_z
-            + rew_ang_vel_xy
-            + rew_orient
-            + rew_base_height
-            + rew_torque
-            + rew_joint_acc
-            + rew_action_rate
-            + rew_hip
-            + rew_fallen_over
-        )
-        self.rew_buf = torch.clip(self.rew_buf, min=0.0, max=None)
-
-        # add termination reward
-        self.rew_buf += self.rew_scales["termination"] * self.reset_buf * ~self.timeout_buf
-
-        # log episode reward sums
-        self.episode_sums["lin_vel_xy"] += rew_lin_vel_xy
-        self.episode_sums["ang_vel_z"] += rew_ang_vel_z
-        self.episode_sums["lin_vel_z"] += rew_lin_vel_z
-        self.episode_sums["ang_vel_xy"] += rew_ang_vel_xy
-        self.episode_sums["orient"] += rew_orient
-        self.episode_sums["torques"] += rew_torque
-        self.episode_sums["joint_acc"] += rew_joint_acc
-        self.episode_sums["action_rate"] += rew_action_rate
-        self.episode_sums["base_height"] += rew_base_height
-        self.episode_sums["hip"] += rew_hip
 
     def get_scale_shift(rng):
         scale = 2.0 / (rng[1] - rng[0])
@@ -1127,8 +1225,8 @@ class AnymalTerrainTask(RLTask):
 
     def _reward_base_height(self):
         # Penalize base height away from target
-        base_height = torch.mean(self.root_states[:, 2].unsqueeze(1) - self.measured_heights, dim=1)
-        return torch.square(base_height - self.cfg.rewards.base_height_target)
+        base_height = torch.mean(self.base_pos[:, 2].unsqueeze(1) - self.measured_heights, dim=1)
+        return torch.square(base_height - self.base_height_target)
     
     def _reward_torques(self):
         # Penalize torques
@@ -1148,54 +1246,61 @@ class AnymalTerrainTask(RLTask):
     
     def _reward_collision(self):
         # Penalize collisions on selected bodies
-        return torch.sum(1.*(torch.norm(self.contact_forces[:, self.penalized_contact_indices, :], dim=-1) > 0.1), dim=1)
-    
+        thigh_contact = (
+            torch.norm(self.thigh_contact_forces, dim=-1)
+            > 0.1
+        )
+        shank_contact = (torch.norm(self.shank_contact_forces, dim=-1) > 0.1)
+        total_contact = thigh_contact + shank_contact
+        return torch.sum(total_contact, dim=-1)
+
     def _reward_termination(self):
         # Terminal reward / penalty
         return self.has_fallen
     
     def _reward_dof_pos_limits(self):
         # Penalize dof positions too close to the limit
-        out_of_limits = -(self.dof_pos - self.dof_pos_limits[:, 0]).clip(max=0.) # lower limit
-        out_of_limits += (self.dof_pos - self.dof_pos_limits[:, 1]).clip(min=0.)
+        out_of_limits = -(self.dof_pos - self.anymal_dof_soft_lower_limits).clip(max=0.) # lower limit
+        out_of_limits += (self.dof_pos - self.anymal_dof_soft_upper_limits).clip(min=0.)
         return torch.sum(out_of_limits, dim=1)
 
     def _reward_dof_vel_limits(self):
         # Penalize dof velocities too close to the limit
         # clip to max error = 1 rad/s per joint to avoid huge penalties
-        return torch.sum((torch.abs(self.dof_vel) - self.dof_vel_limits*self.cfg.rewards.soft_dof_vel_limit).clip(min=0., max=1.), dim=1)
+        return torch.sum((torch.abs(self.dof_vel) - self.dof_vel_limits*self.only_positive_rewards).clip(min=0., max=1.), dim=1)
 
     def _reward_torque_limits(self):
         # penalize torques too close to the limit
-        return torch.sum((torch.abs(self.torques) - self.torque_limits*self.cfg.rewards.soft_torque_limit).clip(min=0.), dim=1)
+        return torch.sum((torch.abs(self.torques) - self.torque_limits*self.soft_torque_limit).clip(min=0.), dim=1)
 
     def _reward_tracking_lin_vel(self):
         # Tracking of linear velocity commands (xy axes)
         lin_vel_error = torch.sum(torch.square(self.commands[:, :2] - self.base_lin_vel[:, :2]), dim=1)
-        return torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma)
+        return torch.exp(-lin_vel_error/self.tracking_sigma)
     
     def _reward_tracking_ang_vel(self):
         # Tracking of angular velocity commands (yaw) 
         ang_vel_error = torch.square(self.commands[:, 2] - self.base_ang_vel[:, 2])
-        return torch.exp(-ang_vel_error/self.cfg.rewards.tracking_sigma)
+        return torch.exp(-ang_vel_error/self.tracking_sigma)
 
     def _reward_feet_air_time(self):
         # Reward long steps
         # Need to filter the contacts because the contact reporting of PhysX is unreliable on meshes
-        contact = self.contact_forces[:, self.feet_indices, 2] > 1.
-        contact_filt = torch.logical_or(contact, self.last_contacts) 
+        contact = self.foot_contact_forces[:, self.feet_indices, 2] > 1.0  # Placeholder for contact detection, adjust threshold as needed
+        self.contact_filt = torch.logical_or(contact, self.last_contacts) 
         self.last_contacts = contact
-        first_contact = (self.feet_air_time > 0.) * contact_filt
-        self.feet_air_time += self.dt
+        first_contact = (self.feet_air_time > 0.) * self.contact_filt
+        self.feet_air_time += self.dt  # Assuming self.dt is the timestep duration
         rew_airTime = torch.sum((self.feet_air_time - 0.5) * first_contact, dim=1) # reward only on first contact with the ground
         rew_airTime *= torch.norm(self.commands[:, :2], dim=1) > 0.1 #no reward for zero command
-        self.feet_air_time *= ~contact_filt
+        self.feet_air_time *= ~self.contact_filt
         return rew_airTime
+
     
     def _reward_stumble(self):
         # Penalize feet hitting vertical surfaces
-        return torch.any(torch.norm(self.contact_forces[:, self.feet_indices, :2], dim=2) >\
-             5 *torch.abs(self.contact_forces[:, self.feet_indices, 2]), dim=1)
+        return torch.any(torch.norm(self.foot_contact_forces[:, self.feet_indices, :2], dim=2) >\
+             5 *torch.abs(self.foot_contact_forces[:, self.feet_indices, 2]), dim=1)
         
     def _reward_stand_still(self):
         # Penalize motion at zero commands
@@ -1203,8 +1308,17 @@ class AnymalTerrainTask(RLTask):
 
     def _reward_feet_contact_forces(self):
         # penalize high contact forces
-        return torch.sum((torch.norm(self.contact_forces[:, self.feet_indices, :], dim=-1) -  self.cfg.rewards.max_contact_force).clip(min=0.), dim=1)
+        return torch.sum((torch.norm(self.foot_contact_forces[:, self.feet_indices, :], dim=-1) -  self.max_contact_force).clip(min=0.), dim=1)
+    
+    def _reward_hip_motion(self):
+        # Penalize hip motion
+        return torch.sum(torch.abs(self.dof_pos[:, :4] - self.default_dof_pos[:, :4]), dim=1)
 
+    #------------ end reward functions----------------
+    
+
+
+    #------------ particle based functions----------------
     def create_particle_systems(self):
         for i in range(self.terrain_details.shape[0]):
             terrain_row = self.terrain_details[i]
@@ -1213,7 +1327,8 @@ class AnymalTerrainTask(RLTask):
 
             # Construct the system name from integer system_id
             system_id = int(row[6])                # e.g. 1, 2, ...
-            system_name = f"system{system_id}"     # "system1", "system2", etc.            material_key = f"pbd_material_{system_name}"
+            system_name = f"system{system_id}"     # "system1", "system2", etc.            
+            material_key = f"pbd_material_{system_name}"
             particle_system_path = f"/World/particleSystem/{system_name}"
 
             # **Create Particle System if not already created**
@@ -1878,6 +1993,7 @@ class AnymalTerrainTask(RLTask):
         sphere_geom = UsdGeom.Sphere(self._stage.GetPrimAtPath(prototype_path))
         sphere_geom.CreateDisplayColorAttr().Set([Gf.Vec3f(1.0, 0.0, 0.0)])
 
+#------------ helper functions----------------
 
 @torch.jit.script
 def quat_apply_yaw(quat, vec):
