@@ -12,7 +12,7 @@ policy:
   activation: elu
   # Only leg-specific control head remains.
   leg_control_head_hidden_dims: [128, 128]
-  priv_encoder_dims: [64, 20]
+  priv_encoder_dims: [] #64, 20
   num_leg_actions: 12
 
 algorithm:

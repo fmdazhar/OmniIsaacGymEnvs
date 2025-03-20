@@ -82,8 +82,8 @@ class A1(Robot):
                 sensor_period=-1,
             )
 
-        self.foot_force = np.zeros(4)
-        self.enable_foot_filter = True
+        # self.foot_force = np.zeros(4)
+        # self.enable_foot_filter = True
         self._cs = _sensor.acquire_contact_sensor_interface()
 
         # Initialize the Robot base class
@@ -103,28 +103,28 @@ class A1(Robot):
         """
         return self._dof_names
 
-    @property
-    def foot_forces(self) -> np.ndarray:
-        """
-        Returns:
-            np.ndarray: A 4-element array of the latest foot contact forces 
-            [FL_force, FR_force, RL_force, RR_force].
-        """
-        return self._foot_forces
+    # @property
+    # def foot_forces(self) -> np.ndarray:
+    #     """
+    #     Returns:
+    #         np.ndarray: A 4-element array of the latest foot contact forces 
+    #         [FL_force, FR_force, RL_force, RR_force].
+    #     """
+    #     return self._foot_forces
 
-    def update_contact_sensor_data(self) -> None:
-        """[summary]
+    # def update_contact_sensor_data(self) -> None:
+    #     """[summary]
 
-        Updates processed contact sensor data from the robot feets, store them in member variable foot_force
-        """
-        # Order: FL, FR, BL, BR
-        for i in range(len(self.feet_path)):
-            sensor_reading = self._cs.get_sensor_reading(self.feet_path[i] + "/sensor")
-            if sensor_reading.is_valid:
-                if self.enable_foot_filter:
-                    self.foot_force[i] = self.foot_force[i] * 0.9 + sensor_reading.value * 0.1
-                else:
-                    self.foot_force[i] = sensor_reading.value
+    #     Updates processed contact sensor data from the robot feets, store them in member variable foot_force
+    #     """
+    #     # Order: FL, FR, BL, BR
+    #     for i in range(len(self.feet_path)):
+    #         sensor_reading = self._cs.get_sensor_reading(self.feet_path[i] + "/sensor")
+    #         if sensor_reading.is_valid:
+    #             if self.enable_foot_filter:
+    #                 self.foot_force[i] = self.foot_force[i] * 0.9 + sensor_reading.value * 0.1
+    #             else:
+    #                 self.foot_force[i] = sensor_reading.value
 
     def set_a1_properties(self, stage, prim):
         for link_prim in prim.GetChildren():
@@ -137,7 +137,6 @@ class A1(Robot):
                 rb.GetAngularDampingAttr().Set(0.0)
                 rb.GetMaxAngularVelocityAttr().Set(1000.0)
                 rb.GetMaxDepenetrationVelocityAttr().Set(1.0)
-                print("Setting A1 properties")
 
 
     def prepare_contacts(self, stage, prim):
@@ -147,10 +146,8 @@ class A1(Robot):
                     rb = PhysxSchema.PhysxRigidBodyAPI.Get(stage, link_prim.GetPrimPath())
                     rb.CreateSleepThresholdAttr().Set(0)
                     if not link_prim.HasAPI(PhysxSchema.PhysxContactReportAPI):
-                        print(f"Adding contact report API to prim: '{link_prim.GetPrimPath()}'")
                         cr_api = PhysxSchema.PhysxContactReportAPI.Apply(link_prim)
                     else:
-                        print(f"Contact report API already exists on prim: '{link_prim.GetPrimPath()}'")
                         cr_api = PhysxSchema.PhysxContactReportAPI.Get(stage, link_prim.GetPrimPath())
                     # set threshold to zero
                     cr_api.CreateThresholdAttr().Set(0)

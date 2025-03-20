@@ -1,0 +1,733 @@
+
+[34m[1mwandb[39m[22m: [33mWARNING[39m Found log directory outside of given root_logdir, dropping given root_logdir for event file in /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/runs
+Actor MLP: Actor(
+  (priv_encoder): Identity()
+  (history_encoder): StateHistoryEncoder(
+    (activation_fn): ELU(alpha=1.0)
+    (encoder): Sequential(
+      (0): Linear(in_features=48, out_features=30, bias=True)
+      (1): ELU(alpha=1.0)
+    )
+    (conv_layers): Sequential(
+      (0): Conv1d(30, 20, kernel_size=(4,), stride=(2,))
+      (1): ELU(alpha=1.0)
+      (2): Conv1d(20, 10, kernel_size=(2,), stride=(1,))
+      (3): ELU(alpha=1.0)
+      (4): Flatten(start_dim=1, end_dim=-1)
+    )
+    (linear_output): Sequential(
+      (0): Linear(in_features=30, out_features=28, bias=True)
+      (1): ELU(alpha=1.0)
+    )
+  )
+  (actor_backbone): Sequential(
+    (0): Linear(in_features=76, out_features=128, bias=True)
+    (1): ELU(alpha=1.0)
+  )
+  (actor_leg_control_head): Sequential(
+    (0): Linear(in_features=128, out_features=128, bias=True)
+    (1): ELU(alpha=1.0)
+    (2): Linear(in_features=128, out_features=128, bias=True)
+    (3): ELU(alpha=1.0)
+    (4): Linear(in_features=128, out_features=12, bias=True)
+    (5): Tanh()
+  )
+)
+Critic MLP: Critic(
+  (critic_backbone): Sequential(
+    (0): Linear(in_features=76, out_features=128, bias=True)
+    (1): ELU(alpha=1.0)
+  )
+  (critic_leg_control_head): Sequential(
+    (0): Linear(in_features=128, out_features=128, bias=True)
+    (1): ELU(alpha=1.0)
+    (2): Linear(in_features=128, out_features=128, bias=True)
+    (3): ELU(alpha=1.0)
+    (4): Linear(in_features=128, out_features=1, bias=True)
+  )
+)
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+ActorCritic                              12
+├─Actor: 1-1                             --
+│    └─Identity: 2-1                     --
+│    └─StateHistoryEncoder: 2-2          --
+│    │    └─ELU: 3-1                     --
+│    │    └─Sequential: 3-2              1,470
+│    │    └─Sequential: 3-3              2,830
+│    │    └─Sequential: 3-4              868
+│    └─Sequential: 2-3                   --
+│    │    └─Linear: 3-5                  9,856
+│    │    └─ELU: 3-6                     --
+│    └─Sequential: 2-4                   --
+│    │    └─Linear: 3-7                  16,512
+│    │    └─ELU: 3-8                     --
+│    │    └─Linear: 3-9                  16,512
+│    │    └─ELU: 3-10                    --
+│    │    └─Linear: 3-11                 1,548
+│    │    └─Tanh: 3-12                   --
+├─Critic: 1-2                            --
+│    └─Sequential: 2-5                   --
+│    │    └─Linear: 3-13                 9,856
+│    │    └─ELU: 3-14                    --
+│    └─Sequential: 2-6                   --
+│    │    └─Linear: 3-15                 16,512
+│    │    └─ELU: 3-16                    --
+│    │    └─Linear: 3-17                 16,512
+│    │    └─ELU: 3-18                    --
+│    │    └─Linear: 3-19                 129
+=================================================================
+Total params: 92,617
+Trainable params: 92,617
+Non-trainable params: 0
+=================================================================
+[2025-03-20 11:49:17] Running RL reset
+tensor([235.3305], device='cuda:0') tensor([471.5097], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([236.7950], device='cuda:0') tensor([484.0345], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([238.2849], device='cuda:0') tensor([473.1875], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([237.7142], device='cuda:0') tensor([473.1875], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([239.1764], device='cuda:0') tensor([478.1079], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([243.6997], device='cuda:0') tensor([481.5791], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([241.9089], device='cuda:0') tensor([472.7681], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([236.1556], device='cuda:0') tensor([487.2090], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([248.7924], device='cuda:0') tensor([480.6008], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([242.1067], device='cuda:0') tensor([479.6789], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([231.1061], device='cuda:0') tensor([470.2472], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([241.7697], device='cuda:0') tensor([473.5089], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step cannot be set when using syncing with tensorboard. Please log your step values as a metric such as 'global_step'
+tensor([233.4557], device='cuda:0') tensor([489.1333], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([245.4291], device='cuda:0') tensor([481.3864], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([241.8037], device='cuda:0') tensor([480.2101], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([237.8344], device='cuda:0') tensor([484.9389], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([233.8220], device='cuda:0') tensor([479.3239], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([238.5544], device='cuda:0') tensor([478.6351], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([239.1416], device='cuda:0') tensor([484.9614], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([237.1251], device='cuda:0') tensor([479.3927], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([236.6276], device='cuda:0') tensor([473.9810], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([245.7774], device='cuda:0') tensor([482.8889], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([234.7609], device='cuda:0') tensor([489.6988], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([246.6951], device='cuda:0') tensor([477.3953], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([245.6451], device='cuda:0') tensor([473.6872], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([234.9574], device='cuda:0') tensor([483.6574], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([241.4216], device='cuda:0') tensor([489.9398], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([245.3921], device='cuda:0') tensor([489.5049], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([235.8760], device='cuda:0') tensor([485.6949], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([246.7538], device='cuda:0') tensor([476.1715], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([230.3459], device='cuda:0') tensor([473.0736], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([247.9006], device='cuda:0') tensor([488.7914], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([248.7825], device='cuda:0') tensor([487.5765], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([230.9879], device='cuda:0') tensor([479.0997], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([245.3056], device='cuda:0') tensor([479.7094], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([246.3138], device='cuda:0') tensor([474.7514], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([245.7142], device='cuda:0') tensor([481.2696], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([238.9812], device='cuda:0') tensor([483.6249], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([245.2850], device='cuda:0') tensor([479.8508], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([238.7942], device='cuda:0') tensor([489.4842], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([248.6186], device='cuda:0') tensor([487.9788], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+################################################################################
+                     [1m Learning iteration 0/1000000 
+                       Computation: 21 steps/s (collection: 1.691s, learning 0.179s)
+               Value function loss: 0.0000
+                    Surrogate loss: 0.0000
+   History latent supervision loss: 3.0366
+  Privileged info regularizer loss: 0.0000
+Privileged info regularizer lambda: 0.0000
+         Leg mean action noise std: 0.93
+     action noise std distribution: [0.800000011920929, 1.0, 1.0, 0.800000011920929, 1.0, 1.0, 0.800000011920929, 1.0, 1.0, 0.800000011920929, 1.0, 1.0]
+                       Mean reward: -0.01
+               Mean episode length: 1.00
+                             Dones: 1.00
+ Mean episode rew_tracking_lin_vel: 0.0001
+ Mean episode rew_tracking_ang_vel: 0.0001
+        Mean episode rew_lin_vel_z: -0.0002
+       Mean episode rew_ang_vel_xy: -0.0000
+          Mean episode rew_torques: -0.0002
+          Mean episode rew_dof_acc: -0.0000
+    Mean episode rew_feet_air_time: 0.0000
+        Mean episode rew_collision: 0.0000
+      Mean episode rew_action_rate: -0.0003
+   Mean episode rew_dof_pos_limits: -0.0002
+        Mean episode terrain_level: 0.0000
+        Mean episode max_command_x: 1.0000
+--------------------------------------------------------------------------------
+                   Total timesteps: 40
+                    Iteration time: 1.87s
+                        Total time: 1.87s
+                               ETA: 1869959.1s
+tensor([235.4903], device='cuda:0') tensor([473.0583], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([239.9264], device='cuda:0') tensor([478.1576], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([235.8796], device='cuda:0') tensor([474.6172], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([248.7196], device='cuda:0') tensor([480.3511], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([232.6238], device='cuda:0') tensor([482.7964], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([245.6823], device='cuda:0') tensor([477.7693], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([245.6891], device='cuda:0') tensor([481.5264], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([233.0225], device='cuda:0') tensor([485.4640], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([248.6641], device='cuda:0') tensor([483.2033], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([248.9987], device='cuda:0') tensor([478.4027], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([249.9824], device='cuda:0') tensor([484.8523], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([233.6618], device='cuda:0') tensor([470.1456], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([231.9069], device='cuda:0') tensor([488.6868], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([238.2481], device='cuda:0') tensor([470.4794], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([249.3674], device='cuda:0') tensor([471.1719], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([233.3670], device='cuda:0') tensor([482.3256], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([239.8671], device='cuda:0') tensor([486.2613], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([231.1858], device='cuda:0') tensor([471.8582], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([239.9255], device='cuda:0') tensor([486.5461], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([231.5274], device='cuda:0') tensor([472.9319], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([249.7582], device='cuda:0') tensor([473.3011], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([245.6916], device='cuda:0') tensor([475.5452], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([239.1116], device='cuda:0') tensor([488.6589], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([238.0659], device='cuda:0') tensor([479.3366], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([244.4844], device='cuda:0') tensor([487.4115], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([232.4459], device='cuda:0') tensor([475.4098], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([237.5479], device='cuda:0') tensor([471.1498], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([245.4061], device='cuda:0') tensor([480.3980], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([233.9711], device='cuda:0') tensor([477.0693], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([236.5042], device='cuda:0') tensor([473.7272], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([244.7525], device='cuda:0') tensor([475.9598], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([243.8677], device='cuda:0') tensor([476.9391], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([234.7357], device='cuda:0') tensor([488.4329], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([248.3932], device='cuda:0') tensor([479.4454], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([247.4238], device='cuda:0') tensor([485.8878], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([249.2414], device='cuda:0') tensor([488.0488], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([239.4605], device='cuda:0') tensor([484.9489], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([244.0185], device='cuda:0') tensor([478.5818], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([234.5713], device='cuda:0') tensor([473.4135], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([245.6195], device='cuda:0') tensor([480.1617], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+################################################################################
+                     [1m Learning iteration 1/1000000 
+                       Computation: 27 steps/s (collection: 1.343s, learning 0.133s)
+               Value function loss: 0.0011
+                    Surrogate loss: 279.3060
+   History latent supervision loss: 3.0366
+  Privileged info regularizer loss: 2.9068
+Privileged info regularizer lambda: 0.0000
+         Leg mean action noise std: 0.94
+     action noise std distribution: [0.8039748668670654, 1.0039572715759277, 1.0035043954849243, 0.8035142421722412, 1.002951741218567, 1.0001903772354126, 0.8026559948921204, 1.0010614395141602, 1.0016841888427734, 0.8036910891532898, 1.0036269426345825, 0.9974463582038879]
+                       Mean reward: -0.01
+               Mean episode length: 1.00
+                             Dones: 1.00
+ Mean episode rew_tracking_lin_vel: 0.0001
+ Mean episode rew_tracking_ang_vel: 0.0001
+        Mean episode rew_lin_vel_z: -0.0002
+       Mean episode rew_ang_vel_xy: -0.0000
+          Mean episode rew_torques: -0.0002
+          Mean episode rew_dof_acc: -0.0000
+    Mean episode rew_feet_air_time: 0.0000
+        Mean episode rew_collision: 0.0000
+      Mean episode rew_action_rate: -0.0003
+   Mean episode rew_dof_pos_limits: -0.0002
+        Mean episode terrain_level: 0.0000
+        Mean episode max_command_x: 1.0000
+--------------------------------------------------------------------------------
+                   Total timesteps: 80
+                    Iteration time: 1.48s
+                        Total time: 3.35s
+                               ETA: 1672740.7s
+tensor([242.6853], device='cuda:0') tensor([472.3099], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([232.9983], device='cuda:0') tensor([489.5980], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([244.2269], device='cuda:0') tensor([475.7085], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([232.5236], device='cuda:0') tensor([488.2278], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([244.5567], device='cuda:0') tensor([473.7353], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([235.9022], device='cuda:0') tensor([480.6115], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([234.6860], device='cuda:0') tensor([481.4474], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([241.9652], device='cuda:0') tensor([484.5561], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([236.8886], device='cuda:0') tensor([470.2473], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([244.2441], device='cuda:0') tensor([485.2161], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([249.1230], device='cuda:0') tensor([485.2073], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([243.1222], device='cuda:0') tensor([489.4374], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([231.1028], device='cuda:0') tensor([486.7363], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([239.1699], device='cuda:0') tensor([484.6153], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([239.3212], device='cuda:0') tensor([479.6787], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([232.5454], device='cuda:0') tensor([476.4305], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([241.6737], device='cuda:0') tensor([482.5706], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([231.4845], device='cuda:0') tensor([473.5584], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([238.4001], device='cuda:0') tensor([471.3928], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([239.3699], device='cuda:0') tensor([472.9542], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([247.8510], device='cuda:0') tensor([477.1053], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([233.4097], device='cuda:0') tensor([473.2404], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([237.0208], device='cuda:0') tensor([480.0365], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([232.6746], device='cuda:0') tensor([472.6845], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([244.7436], device='cuda:0') tensor([488.9304], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([248.5015], device='cuda:0') tensor([473.7504], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([237.4686], device='cuda:0') tensor([478.8922], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([246.3107], device='cuda:0') tensor([483.0355], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([231.1187], device='cuda:0') tensor([477.0470], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([249.0859], device='cuda:0') tensor([487.3164], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([240.6550], device='cuda:0') tensor([489.3848], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([245.5764], device='cuda:0') tensor([477.4175], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([243.3448], device='cuda:0') tensor([489.1428], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([235.5902], device='cuda:0') tensor([489.3084], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([236.1894], device='cuda:0') tensor([484.9429], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([241.2165], device='cuda:0') tensor([476.9307], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([243.9484], device='cuda:0') tensor([470.8437], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([238.4229], device='cuda:0') tensor([484.6524], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([245.1586], device='cuda:0') tensor([475.4806], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([242.2234], device='cuda:0') tensor([484.0363], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+################################################################################
+                     [1m Learning iteration 2/1000000 
+                       Computation: 26 steps/s (collection: 1.367s, learning 0.127s)
+               Value function loss: 0.0004
+                    Surrogate loss: 517.0427
+   History latent supervision loss: 3.0366
+  Privileged info regularizer loss: 3.1610
+Privileged info regularizer lambda: 0.0000
+         Leg mean action noise std: 0.94
+     action noise std distribution: [0.8076338171958923, 1.0067628622055054, 1.007151484489441, 0.8067343831062317, 1.0051722526550293, 1.0022642612457275, 0.8066484928131104, 1.0014588832855225, 1.0020993947982788, 0.8064841628074646, 1.006976842880249, 0.9988256096839905]
+                       Mean reward: -0.01
+               Mean episode length: 1.00
+                             Dones: 1.00
+ Mean episode rew_tracking_lin_vel: 0.0002
+ Mean episode rew_tracking_ang_vel: 0.0001
+        Mean episode rew_lin_vel_z: -0.0002
+       Mean episode rew_ang_vel_xy: -0.0000
+          Mean episode rew_torques: -0.0002
+          Mean episode rew_dof_acc: -0.0000
+    Mean episode rew_feet_air_time: 0.0000
+        Mean episode rew_collision: 0.0000
+      Mean episode rew_action_rate: -0.0003
+   Mean episode rew_dof_pos_limits: -0.0002
+        Mean episode terrain_level: 0.0000
+        Mean episode max_command_x: 1.0000
+--------------------------------------------------------------------------------
+                   Total timesteps: 120
+                    Iteration time: 1.49s
+                        Total time: 4.84s
+                               ETA: 1613332.7s
+tensor([237.0012], device='cuda:0') tensor([489.9523], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([243.2846], device='cuda:0') tensor([481.0879], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([233.1996], device='cuda:0') tensor([484.2355], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([233.9701], device='cuda:0') tensor([482.9470], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([231.3126], device='cuda:0') tensor([487.7686], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([245.4362], device='cuda:0') tensor([480.7708], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([236.7271], device='cuda:0') tensor([489.1103], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([235.4742], device='cuda:0') tensor([485.1202], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([244.5518], device='cuda:0') tensor([474.0179], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([242.3962], device='cuda:0') tensor([486.0048], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([249.3166], device='cuda:0') tensor([472.0042], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([247.6201], device='cuda:0') tensor([474.2312], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([238.4371], device='cuda:0') tensor([486.5234], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([243.8499], device='cuda:0') tensor([473.8941], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([238.3582], device='cuda:0') tensor([473.1512], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([241.9064], device='cuda:0') tensor([476.9012], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([231.4397], device='cuda:0') tensor([486.3712], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([234.8125], device='cuda:0') tensor([487.9941], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([240.9904], device='cuda:0') tensor([488.9170], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([236.6426], device='cuda:0') tensor([477.5148], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([242.5939], device='cuda:0') tensor([478.7666], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([244.3772], device='cuda:0') tensor([476.8261], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([231.3441], device='cuda:0') tensor([487.1273], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([237.4573], device='cuda:0') tensor([482.8149], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([238.8298], device='cuda:0') tensor([478.7311], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([230.9256], device='cuda:0') tensor([471.4180], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([246.1469], device='cuda:0') tensor([478.6969], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([237.9050], device='cuda:0') tensor([471.4794], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([241.8597], device='cuda:0') tensor([482.7435], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([238.8772], device='cuda:0') tensor([487.8569], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([237.5544], device='cuda:0') tensor([474.1391], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([238.1067], device='cuda:0') tensor([482.2997], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([248.1182], device='cuda:0') tensor([484.8791], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([239.8849], device='cuda:0') tensor([485.7556], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([242.9490], device='cuda:0') tensor([475.5785], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([249.3938], device='cuda:0') tensor([476.9470], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([249.6529], device='cuda:0') tensor([489.7324], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([238.2328], device='cuda:0') tensor([476.9429], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([231.5595], device='cuda:0') tensor([470.1865], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([241.3628], device='cuda:0') tensor([483.9214], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+################################################################################
+                     [1m Learning iteration 3/1000000 
+                       Computation: 27 steps/s (collection: 1.339s, learning 0.102s)
+               Value function loss: 0.0003
+                    Surrogate loss: 20.8363
+   History latent supervision loss: 3.0366
+  Privileged info regularizer loss: 2.9468
+Privileged info regularizer lambda: 0.0000
+         Leg mean action noise std: 0.94
+     action noise std distribution: [0.8087082505226135, 1.009939432144165, 1.0095521211624146, 0.81075119972229, 1.0077909231185913, 1.0024417638778687, 0.8089289665222168, 1.0014922618865967, 1.0021347999572754, 0.8069871068000793, 1.0094475746154785, 0.9995864629745483]
+                       Mean reward: -0.01
+               Mean episode length: 1.00
+                             Dones: 1.00
+ Mean episode rew_tracking_lin_vel: 0.0002
+ Mean episode rew_tracking_ang_vel: 0.0001
+        Mean episode rew_lin_vel_z: -0.0002
+       Mean episode rew_ang_vel_xy: -0.0000
+          Mean episode rew_torques: -0.0002
+          Mean episode rew_dof_acc: -0.0000
+    Mean episode rew_feet_air_time: 0.0000
+        Mean episode rew_collision: 0.0000
+      Mean episode rew_action_rate: -0.0003
+   Mean episode rew_dof_pos_limits: -0.0003
+        Mean episode terrain_level: 0.0000
+        Mean episode max_command_x: 1.0000
+--------------------------------------------------------------------------------
+                   Total timesteps: 160
+                    Iteration time: 1.44s
+                        Total time: 6.28s
+                               ETA: 1570376.5s
+tensor([233.9677], device='cuda:0') tensor([476.9769], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([239.1958], device='cuda:0') tensor([486.1929], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([241.9589], device='cuda:0') tensor([478.2439], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([232.8039], device='cuda:0') tensor([480.0059], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([231.4653], device='cuda:0') tensor([489.4341], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([241.7489], device='cuda:0') tensor([480.9333], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([245.1437], device='cuda:0') tensor([487.9272], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([247.1503], device='cuda:0') tensor([489.1718], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([233.8236], device='cuda:0') tensor([472.0872], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([239.4167], device='cuda:0') tensor([474.9131], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([231.5180], device='cuda:0') tensor([475.4779], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([240.9699], device='cuda:0') tensor([481.0570], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([242.4550], device='cuda:0') tensor([473.7281], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([233.7152], device='cuda:0') tensor([487.3962], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')
+tensor([True], device='cuda:0')
+tensor([238.2751], device='cuda:0') tensor([474.5959], device='cuda:0')
+tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0') tensor([0.], device='cuda:0')

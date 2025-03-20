@@ -1,0 +1,325 @@
+
+[34m[1mwandb[39m[22m: [33mWARNING[39m Found log directory outside of given root_logdir, dropping given root_logdir for event file in /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/runs
+Actor MLP: Actor(
+  (priv_encoder): Identity()
+  (history_encoder): StateHistoryEncoder(
+    (activation_fn): ELU(alpha=1.0)
+    (encoder): Sequential(
+      (0): Linear(in_features=48, out_features=30, bias=True)
+      (1): ELU(alpha=1.0)
+    )
+    (conv_layers): Sequential(
+      (0): Conv1d(30, 20, kernel_size=(4,), stride=(2,))
+      (1): ELU(alpha=1.0)
+      (2): Conv1d(20, 10, kernel_size=(2,), stride=(1,))
+      (3): ELU(alpha=1.0)
+      (4): Flatten(start_dim=1, end_dim=-1)
+    )
+    (linear_output): Sequential(
+      (0): Linear(in_features=30, out_features=28, bias=True)
+      (1): ELU(alpha=1.0)
+    )
+  )
+  (actor_backbone): Sequential(
+    (0): Linear(in_features=76, out_features=128, bias=True)
+    (1): ELU(alpha=1.0)
+  )
+  (actor_leg_control_head): Sequential(
+    (0): Linear(in_features=128, out_features=128, bias=True)
+    (1): ELU(alpha=1.0)
+    (2): Linear(in_features=128, out_features=128, bias=True)
+    (3): ELU(alpha=1.0)
+    (4): Linear(in_features=128, out_features=12, bias=True)
+    (5): Tanh()
+  )
+)
+Critic MLP: Critic(
+  (critic_backbone): Sequential(
+    (0): Linear(in_features=76, out_features=128, bias=True)
+    (1): ELU(alpha=1.0)
+  )
+  (critic_leg_control_head): Sequential(
+    (0): Linear(in_features=128, out_features=128, bias=True)
+    (1): ELU(alpha=1.0)
+    (2): Linear(in_features=128, out_features=128, bias=True)
+    (3): ELU(alpha=1.0)
+    (4): Linear(in_features=128, out_features=1, bias=True)
+  )
+)
+=================================================================
+Layer (type:depth-idx)                   Param #
+=================================================================
+ActorCritic                              12
+├─Actor: 1-1                             --
+│    └─Identity: 2-1                     --
+│    └─StateHistoryEncoder: 2-2          --
+│    │    └─ELU: 3-1                     --
+│    │    └─Sequential: 3-2              1,470
+│    │    └─Sequential: 3-3              2,830
+│    │    └─Sequential: 3-4              868
+│    └─Sequential: 2-3                   --
+│    │    └─Linear: 3-5                  9,856
+│    │    └─ELU: 3-6                     --
+│    └─Sequential: 2-4                   --
+│    │    └─Linear: 3-7                  16,512
+│    │    └─ELU: 3-8                     --
+│    │    └─Linear: 3-9                  16,512
+│    │    └─ELU: 3-10                    --
+│    │    └─Linear: 3-11                 1,548
+│    │    └─Tanh: 3-12                   --
+├─Critic: 1-2                            --
+│    └─Sequential: 2-5                   --
+│    │    └─Linear: 3-13                 9,856
+│    │    └─ELU: 3-14                    --
+│    └─Sequential: 2-6                   --
+│    │    └─Linear: 3-15                 16,512
+│    │    └─ELU: 3-16                    --
+│    │    └─Linear: 3-17                 16,512
+│    │    └─ELU: 3-18                    --
+│    │    └─Linear: 3-19                 129
+=================================================================
+Total params: 92,617
+Trainable params: 92,617
+Non-trainable params: 0
+=================================================================
+[2025-03-20 11:21:24] Running RL reset
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step cannot be set when using syncing with tensorboard. Please log your step values as a metric such as 'global_step'
+################################################################################
+                     [1m Learning iteration 0/1000000 
+                       Computation: 24 steps/s (collection: 1.481s, learning 0.168s)
+               Value function loss: 0.0000
+                    Surrogate loss: 0.0000
+   History latent supervision loss: 3.0366
+  Privileged info regularizer loss: 0.0000
+Privileged info regularizer lambda: 0.0000
+         Leg mean action noise std: 0.93
+     action noise std distribution: [0.800000011920929, 1.0, 1.0, 0.800000011920929, 1.0, 1.0, 0.800000011920929, 1.0, 1.0, 0.800000011920929, 1.0, 1.0]
+                       Mean reward: -0.01
+               Mean episode length: 1.00
+                             Dones: 1.00
+ Mean episode rew_tracking_lin_vel: 0.0001
+ Mean episode rew_tracking_ang_vel: 0.0001
+        Mean episode rew_lin_vel_z: -0.0002
+       Mean episode rew_ang_vel_xy: -0.0000
+          Mean episode rew_torques: -0.0002
+          Mean episode rew_dof_acc: -0.0000
+    Mean episode rew_feet_air_time: 0.0000
+        Mean episode rew_collision: 0.0000
+      Mean episode rew_action_rate: -0.0003
+   Mean episode rew_dof_pos_limits: -0.0002
+        Mean episode terrain_level: 0.0000
+        Mean episode max_command_x: 1.0000
+--------------------------------------------------------------------------------
+                   Total timesteps: 40
+                    Iteration time: 1.65s
+                        Total time: 1.65s
+                               ETA: 1648757.9s
+################################################################################
+                     [1m Learning iteration 1/1000000 
+                       Computation: 33 steps/s (collection: 1.091s, learning 0.099s)
+               Value function loss: 0.0011
+                    Surrogate loss: 279.3060
+   History latent supervision loss: 3.0366
+  Privileged info regularizer loss: 2.9068
+Privileged info regularizer lambda: 0.0000
+         Leg mean action noise std: 0.94
+     action noise std distribution: [0.8039748668670654, 1.0039572715759277, 1.0035043954849243, 0.8035142421722412, 1.002951741218567, 1.0001903772354126, 0.8026559948921204, 1.0010614395141602, 1.0016841888427734, 0.8036910891532898, 1.0036269426345825, 0.9974463582038879]
+                       Mean reward: -0.01
+               Mean episode length: 1.00
+                             Dones: 1.00
+ Mean episode rew_tracking_lin_vel: 0.0001
+ Mean episode rew_tracking_ang_vel: 0.0001
+        Mean episode rew_lin_vel_z: -0.0002
+       Mean episode rew_ang_vel_xy: -0.0000
+          Mean episode rew_torques: -0.0002
+          Mean episode rew_dof_acc: -0.0000
+    Mean episode rew_feet_air_time: 0.0000
+        Mean episode rew_collision: 0.0000
+      Mean episode rew_action_rate: -0.0003
+   Mean episode rew_dof_pos_limits: -0.0002
+        Mean episode terrain_level: 0.0000
+        Mean episode max_command_x: 1.0000
+--------------------------------------------------------------------------------
+                   Total timesteps: 80
+                    Iteration time: 1.19s
+                        Total time: 2.84s
+                               ETA: 1419818.7s
+################################################################################
+                     [1m Learning iteration 2/1000000 
+                       Computation: 34 steps/s (collection: 1.080s, learning 0.087s)
+               Value function loss: 0.0004
+                    Surrogate loss: 517.0427
+   History latent supervision loss: 3.0366
+  Privileged info regularizer loss: 3.1610
+Privileged info regularizer lambda: 0.0000
+         Leg mean action noise std: 0.94
+     action noise std distribution: [0.8076338171958923, 1.0067628622055054, 1.007151484489441, 0.8067343831062317, 1.0051722526550293, 1.0022642612457275, 0.8066484928131104, 1.0014588832855225, 1.0020993947982788, 0.8064841628074646, 1.006976842880249, 0.9988256096839905]
+                       Mean reward: -0.01
+               Mean episode length: 1.00
+                             Dones: 1.00
+ Mean episode rew_tracking_lin_vel: 0.0002
+ Mean episode rew_tracking_ang_vel: 0.0001
+        Mean episode rew_lin_vel_z: -0.0002
+       Mean episode rew_ang_vel_xy: -0.0000
+          Mean episode rew_torques: -0.0002
+          Mean episode rew_dof_acc: -0.0000
+    Mean episode rew_feet_air_time: 0.0000
+        Mean episode rew_collision: 0.0000
+      Mean episode rew_action_rate: -0.0003
+   Mean episode rew_dof_pos_limits: -0.0002
+        Mean episode terrain_level: 0.0000
+        Mean episode max_command_x: 1.0000
+--------------------------------------------------------------------------------
+                   Total timesteps: 120
+                    Iteration time: 1.17s
+                        Total time: 4.01s
+                               ETA: 1335614.7s
+################################################################################
+                     [1m Learning iteration 3/1000000 
+                       Computation: 36 steps/s (collection: 1.022s, learning 0.089s)
+               Value function loss: 0.0003
+                    Surrogate loss: 20.8363
+   History latent supervision loss: 3.0366
+  Privileged info regularizer loss: 2.9468
+Privileged info regularizer lambda: 0.0000
+         Leg mean action noise std: 0.94
+     action noise std distribution: [0.8087082505226135, 1.009939432144165, 1.0095521211624146, 0.81075119972229, 1.0077909231185913, 1.0024417638778687, 0.8089289665222168, 1.0014922618865967, 1.0021347999572754, 0.8069871068000793, 1.0094475746154785, 0.9995864629745483]
+                       Mean reward: -0.01
+               Mean episode length: 1.00
+                             Dones: 1.00
+ Mean episode rew_tracking_lin_vel: 0.0002
+ Mean episode rew_tracking_ang_vel: 0.0001
+        Mean episode rew_lin_vel_z: -0.0002
+       Mean episode rew_ang_vel_xy: -0.0000
+          Mean episode rew_torques: -0.0002
+          Mean episode rew_dof_acc: -0.0000
+    Mean episode rew_feet_air_time: 0.0000
+        Mean episode rew_collision: 0.0000
+      Mean episode rew_action_rate: -0.0003
+   Mean episode rew_dof_pos_limits: -0.0003
+        Mean episode terrain_level: 0.0000
+        Mean episode max_command_x: 1.0000
+--------------------------------------------------------------------------------
+                   Total timesteps: 160
+                    Iteration time: 1.11s
+                        Total time: 5.12s
+                               ETA: 1279369.0s
+################################################################################
+                     [1m Learning iteration 4/1000000 
+                       Computation: 34 steps/s (collection: 1.060s, learning 0.087s)
+               Value function loss: 0.0015
+                    Surrogate loss: 113.5941
+   History latent supervision loss: 3.0366
+  Privileged info regularizer loss: 2.8759
+Privileged info regularizer lambda: 0.0000
+         Leg mean action noise std: 0.94
+     action noise std distribution: [0.8101435303688049, 1.0130574703216553, 1.01271390914917, 0.8149462938308716, 1.010915994644165, 1.0033799409866333, 0.8089476227760315, 1.0012657642364502, 1.0032017230987549, 0.8071907758712769, 1.0120394229888916, 0.9993399977684021]
+                       Mean reward: -0.01
+               Mean episode length: 1.00
+                             Dones: 1.00
+ Mean episode rew_tracking_lin_vel: 0.0001
+ Mean episode rew_tracking_ang_vel: 0.0001
+        Mean episode rew_lin_vel_z: -0.0002
+       Mean episode rew_ang_vel_xy: -0.0000
+          Mean episode rew_torques: -0.0002
+          Mean episode rew_dof_acc: -0.0000
+    Mean episode rew_feet_air_time: 0.0000
+        Mean episode rew_collision: 0.0000
+      Mean episode rew_action_rate: -0.0003
+   Mean episode rew_dof_pos_limits: -0.0003
+        Mean episode terrain_level: 0.0000
+        Mean episode max_command_x: 1.0000
+--------------------------------------------------------------------------------
+                   Total timesteps: 200
+                    Iteration time: 1.15s
+                        Total time: 6.26s
+                               ETA: 1252841.8s
+################################################################################
+                     [1m Learning iteration 5/1000000 
+                       Computation: 23 steps/s (collection: 1.039s, learning 0.667s)
+               Value function loss: 0.0003
+                    Surrogate loss: 52.6333
+   History latent supervision loss: 3.0366
+  Privileged info regularizer loss: 3.0039
+Privileged info regularizer lambda: 0.0000
+         Leg mean action noise std: 0.94
+     action noise std distribution: [0.8119704723358154, 1.0148359537124634, 1.015852928161621, 0.8180568218231201, 1.014528512954712, 1.0046305656433105, 0.8089768886566162, 1.0028091669082642, 1.0040199756622314, 0.8083391785621643, 1.0131568908691406, 1.001319169998169]
+                       Mean reward: -0.01
+               Mean episode length: 1.00
+                             Dones: 1.00
+ Mean episode rew_tracking_lin_vel: 0.0001
+ Mean episode rew_tracking_ang_vel: 0.0001
+        Mean episode rew_lin_vel_z: -0.0002
+       Mean episode rew_ang_vel_xy: -0.0000
+          Mean episode rew_torques: -0.0002
+          Mean episode rew_dof_acc: -0.0000
+    Mean episode rew_feet_air_time: 0.0000
+        Mean episode rew_collision: 0.0000
+      Mean episode rew_action_rate: -0.0003
+   Mean episode rew_dof_pos_limits: -0.0002
+        Mean episode terrain_level: 0.0000
+        Mean episode max_command_x: 1.0000
+--------------------------------------------------------------------------------
+                   Total timesteps: 240
+                    Iteration time: 1.71s
+                        Total time: 7.97s
+                               ETA: 1328290.9s
+################################################################################
+                     [1m Learning iteration 6/1000000 
+                       Computation: 34 steps/s (collection: 1.039s, learning 0.111s)
+               Value function loss: 0.0002
+                    Surrogate loss: 28.4537
+   History latent supervision loss: 3.0366
+  Privileged info regularizer loss: 2.9601
+Privileged info regularizer lambda: 0.0000
+         Leg mean action noise std: 0.95
+     action noise std distribution: [0.8147712349891663, 1.0161056518554688, 1.018278956413269, 0.8209548592567444, 1.0167731046676636, 1.0075660943984985, 0.8114844560623169, 1.0040003061294556, 1.0037566423416138, 0.8113524317741394, 1.0147716999053955, 1.0036377906799316]
+                       Mean reward: -0.01
+               Mean episode length: 1.00
+                             Dones: 1.00
+ Mean episode rew_tracking_lin_vel: 0.0001
+ Mean episode rew_tracking_ang_vel: 0.0001
+        Mean episode rew_lin_vel_z: -0.0002
+       Mean episode rew_ang_vel_xy: -0.0000
+          Mean episode rew_torques: -0.0002
+          Mean episode rew_dof_acc: -0.0000
+    Mean episode rew_feet_air_time: 0.0000
+        Mean episode rew_collision: 0.0000
+      Mean episode rew_action_rate: -0.0003
+   Mean episode rew_dof_pos_limits: -0.0001
+        Mean episode terrain_level: 0.0000
+        Mean episode max_command_x: 1.0000
+--------------------------------------------------------------------------------
+                   Total timesteps: 280
+                    Iteration time: 1.15s
+                        Total time: 9.12s
+                               ETA: 1302845.4s
+################################################################################
+                     [1m Learning iteration 7/1000000 
+                       Computation: 34 steps/s (collection: 1.077s, learning 0.088s)
+               Value function loss: 0.0003
+                    Surrogate loss: 21.3253
+   History latent supervision loss: 3.0366
+  Privileged info regularizer loss: 2.9051
+Privileged info regularizer lambda: 0.0000
+         Leg mean action noise std: 0.95
+     action noise std distribution: [0.8169810771942139, 1.0155041217803955, 1.018206000328064, 0.8237429261207581, 1.0201548337936401, 1.0098698139190674, 0.8137792944908142, 1.0048471689224243, 1.0033448934555054, 0.8128969073295593, 1.0169270038604736, 1.004337191581726]
+                       Mean reward: -0.01
+               Mean episode length: 1.00
+                             Dones: 1.00
+ Mean episode rew_tracking_lin_vel: 0.0001
+ Mean episode rew_tracking_ang_vel: 0.0001
+        Mean episode rew_lin_vel_z: -0.0002
+       Mean episode rew_ang_vel_xy: -0.0000
+          Mean episode rew_torques: -0.0003
+          Mean episode rew_dof_acc: -0.0000
+    Mean episode rew_feet_air_time: 0.0000
+        Mean episode rew_collision: 0.0000
+      Mean episode rew_action_rate: -0.0003
+   Mean episode rew_dof_pos_limits: -0.0002
+        Mean episode terrain_level: 0.0000
+        Mean episode max_command_x: 1.0000
+--------------------------------------------------------------------------------
+                   Total timesteps: 320
+                    Iteration time: 1.16s
+                        Total time: 10.28s

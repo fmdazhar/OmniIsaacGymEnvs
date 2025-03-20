@@ -1,0 +1,17 @@
+[91m[1m2025-03-08 14:54:22 [12,424ms] [Error] [omni.kit.app._impl] [py stderr]: Error executing job with overrides: ['headless=True', 'test=True']
+[91m[1m2025-03-08 14:54:22 [12,653ms] [Error] [omni.kit.app._impl] [py stderr]: Traceback (most recent call last):
+[91m[1m2025-03-08 14:54:22 [12,653ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/train.py", line 192, in parse_hydra_configs
+[91m[1m    rlg_trainer.run(env, module_path, experiment_dir)
+[91m[1m2025-03-08 14:54:22 [12,653ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/train.py", line 105, in run
+[91m[1m    runner = OnPolicyRunner(env, self.rlg_config_dict, log_dir, device=device)
+[91m[1m2025-03-08 14:54:22 [12,653ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/rsl_rl/rsl_rl/runners/on_policy_runner.py", line 64, in __init__
+[91m[1m    actor_critic: ActorCritic = actor_critic_class( self.env.num_proprio,
+[91m[1m2025-03-08 14:54:22 [12,653ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/rsl_rl/rsl_rl/modules/actor_critic.py", line 205, in __init__
+[91m[1m    self.actor = Actor(mlp_input_dim_a, actor_hidden_dims, activation, leg_control_head_hidden_dims, \
+[91m[1m2025-03-08 14:54:22 [12,654ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/rsl_rl/rsl_rl/modules/actor_critic.py", line 153, in __init__
+[91m[1m    self.history_encoder = StateHistoryEncoder(activation, mlp_input_dim_a, num_hist, priv_encoder_output_dim)
+[91m[1m2025-03-08 14:54:22 [12,654ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/rsl_rl/rsl_rl/modules/actor_critic.py", line 69, in __init__
+[91m[1m    raise(ValueError("tsteps must be 10, 20 or 50"))
+[91m[1m2025-03-08 14:54:22 [12,654ms] [Error] [omni.kit.app._impl] [py stderr]: ValueError: tsteps must be 10, 20 or 50
+[91m[1m2025-03-08 14:54:22 [12,654ms] [Error] [omni.kit.app._impl] [py stderr]: 
+[91m[1mSet the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.

@@ -53,7 +53,8 @@ class Terrain:
         else:
             self.env_rows = len(terrain_types)                # number of rows = number of unique terrain "types"
             self.env_cols = max(t["count"] for t in terrain_types)  # total columns = max of 'count' across all types
-
+        
+        self.num_maps = self.env_rows * self.env_cols
         # Each sub-rectangle (sub-terrain) dimensions in "heightfield" pixels
         self.width_per_env_pixels = int(self.env_width / self.horizontal_scale)
         self.length_per_env_pixels = int(self.env_length / self.horizontal_scale)
@@ -64,7 +65,13 @@ class Terrain:
 
         # Master heightfield storage
         self.height_field_raw = np.zeros((self.tot_rows, self.tot_cols), dtype=np.int16)
-
+        self.terrain_mapping = {
+                                "flat": 0,
+                                "rough": 1,
+                                "compliant" : 2,
+                                "central_depression_terrain": 3,
+                                # add other terrain names if needed
+                            }
         # We'll keep track of each sub-terrain's info in a list:
         self.terrain_details = []
 
@@ -156,15 +163,18 @@ class Terrain:
                 ) * self.vertical_scale
                 self.env_origins[i, j] = [env_origin_x, env_origin_y, env_origin_z]
 
+                # Convert terrain name to a number using the mapping
+                terrain_label = self.terrain_mapping.get(name, -1)  # default to -1 if not found
+
                 # Store terrain details
                 self.terrain_details.append((
                     idx,
                     level,
                     i,
                     j,
-                    name,
-                    particle_present,
-                    compliant_str,
+                    terrain_label,
+                    particles,
+                    compliant,
                     system,
                     depth,
                     size,
@@ -215,3 +225,21 @@ class Terrain:
                 
                 env_origin_z = np.max(terrain.height_field_raw[x1:x2, y1:y2]) * self.vertical_scale
                 self.env_origins[i, j] = [env_origin_x, env_origin_y, env_origin_z]
+
+                terrain_label = self.terrain_mapping.get("flat", 0)
+                self.terrain_details.append((
+                    k,         # Unique terrain index
+                    0,         # level (default)
+                    i,         # row index
+                    j,         # column index
+                    terrain_label,
+                    0,         # particles (default)
+                    0,         # compliant (default)
+                    0,         # system (default)
+                    0,         # depth (default)
+                    0,         # size (default)
+                    start_x,   # lx0: start index in x
+                    end_x,     # lx1: end index in x
+                    start_y,   # ly0: start index in y
+                    end_y,     # ly1: end index in y
+                ))

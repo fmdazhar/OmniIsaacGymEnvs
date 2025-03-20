@@ -42,12 +42,6 @@ from omniisaacgymenvs.utils.hydra_cfg.reformat import omegaconf_to_dict, print_d
 from omniisaacgymenvs.utils.rlgames.rlgames_utils import RLGPUAlgoObserver, RLGPUEnv
 from omniisaacgymenvs.utils.task_util import initialize_task
 from rl_games.common import env_configurations, vecenv
-# from rl_games.torch_runner import Runner
-from omniisaacgymenvs.dribblebot_learn.ppo_cse import Runner
-from omniisaacgymenvs.dribblebot_learn.ppo_cse.actor_critic import AC_Args
-from omniisaacgymenvs.dribblebot_learn.ppo_cse.ppo import PPO_Args
-from omniisaacgymenvs.dribblebot_learn.ppo_cse import RunnerArgs
-
 from rsl_rl.env import VecEnv
 from rsl_rl.runners import OnPolicyRunner
 
@@ -88,23 +82,6 @@ class RLGTrainer:
                 resume="allow",
                 monitor_gym=True,
             )
-            
-        
-        # ac_cfg = self.rlg_config_dict["params"]["AC_Args"]
-        # ppo_cfg = self.rlg_config_dict["params"]["PPO_Args"]
-        # runner_cfg = self.rlg_config_dict["params"]["RunnerArgs"]
-
-        # # Update AC_Args
-        # for key, value in ac_cfg.items():
-        #     setattr(AC_Args, key, value)
-
-        # # Update PPO_Args
-        # for key, value in ppo_cfg.items():
-        #     setattr(PPO_Args, key, value)
-
-        # # Update RunnerArgs
-        # for key, value in runner_cfg.items():
-        #     setattr(RunnerArgs, key, value)
 
         device = 'cuda:0'
         # runner = Runner(env, device=device)

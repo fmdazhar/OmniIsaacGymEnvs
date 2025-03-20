@@ -1,0 +1,43 @@
+[91m[1m2025-03-08 14:44:19 [12,918ms] [Error] [omni.kit.app._impl] [py stderr]: Error executing job with overrides: ['headless=True']
+[91m[1m2025-03-08 14:44:19 [13,186ms] [Error] [omni.kit.app._impl] [py stderr]: Traceback (most recent call last):
+[91m[1m2025-03-08 14:44:19 [13,187ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/train.py", line 192, in parse_hydra_configs
+[91m[1m    rlg_trainer.run(env, module_path, experiment_dir)
+[91m[1m2025-03-08 14:44:19 [13,187ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/train.py", line 105, in run
+[91m[1m    runner = OnPolicyRunner(env, self.rlg_config_dict, log_dir, device=device)
+[91m[1m2025-03-08 14:44:19 [13,187ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/rsl_rl/rsl_rl/runners/on_policy_runner.py", line 73, in __init__
+[91m[1m    self.alg: PPO = alg_class(actor_critic, device=self.device, **self.alg_cfg)
+[91m[1m2025-03-08 14:44:19 [13,187ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/media/isaac/Daten/azhar_ws/rsl_rl/rsl_rl/algorithms/ppo.py", line 75, in __init__
+[91m[1m    self.hist_encoder_optimizer = optim.Adam(self.actor_critic.actor.history_encoder.parameters(), lr=learning_rate)
+[91m[1m2025-03-08 14:44:19 [13,187ms] [Error] [omni.kit.app._impl] [py stderr]:   File "/home/isaac/isaacsim/exts/omni.isaac.ml_archive/pip_prebundle/torch/nn/modules/module.py", line 1688, in __getattr__
+[91m[1m    raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+[91m[1m2025-03-08 14:44:19 [13,187ms] [Error] [omni.kit.app._impl] [py stderr]: AttributeError: 'Actor' object has no attribute 'history_encoder'
+[91m[1m2025-03-08 14:44:19 [13,187ms] [Error] [omni.kit.app._impl] [py stderr]: 
+[91m[1mSet the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+Actor MLP: Actor(
+  (priv_encoder): Identity()
+  (actor_backbone): Sequential(
+    (0): Linear(in_features=76, out_features=128, bias=True)
+    (1): ELU(alpha=1.0)
+  )
+  (actor_leg_control_head): Sequential(
+    (0): Linear(in_features=128, out_features=128, bias=True)
+    (1): ELU(alpha=1.0)
+    (2): Linear(in_features=128, out_features=128, bias=True)
+    (3): ELU(alpha=1.0)
+    (4): Linear(in_features=128, out_features=12, bias=True)
+    (5): Tanh()
+  )
+)
+Critic MLP: Critic(
+  (critic_backbone): Sequential(
+    (0): Linear(in_features=76, out_features=128, bias=True)
+    (1): ELU(alpha=1.0)
+  )
+  (critic_leg_control_head): Sequential(
+    (0): Linear(in_features=128, out_features=128, bias=True)
+    (1): ELU(alpha=1.0)
+    (2): Linear(in_features=128, out_features=128, bias=True)
+    (3): ELU(alpha=1.0)
+    (4): Linear(in_features=128, out_features=1, bias=True)
+  )
+)

@@ -3,19 +3,20 @@ name: AnymalTerrain
 physics_engine: ${..physics_engine}
 
 env:
-  numEnvs: ${resolve_default:2,${...num_envs}}
+  numEnvs: ${resolve_default:1,${...num_envs}}
   numObservations: 48 #188 #3 + 3 + 3 + 3 + 12 + 12 + 140 + 12
   numActions: 12
   envSpacing: 3.  # [m]
 
   terrain:
-    measureHeights: True
+    measureHeights: False
     staticFriction: 1.0  # [-]
     dynamicFriction: 1.0  # [-]
     restitution: 0.        # [-]
-    numLevels: 10
-    numTerrains: 10
-    # rough terrain only:
+    
+    numLevels: 10 # for no curriculum
+    numTerrains: 10 # for no curriculum
+
     curriculum: False
     VelocityCurriculum : True
     maxInitMapLevel: 0
@@ -31,7 +32,6 @@ env:
         compliant: False
         count: 5
         level: 0
-
 
       # - name: rough
       #   compliant: True
@@ -60,16 +60,16 @@ env:
       #   level: 0
       #   particle_present: True
       #   system: 1
-      #   terrain_depression_depth: 0.13
-      #   terrain_depression_size: 4           # Length of the terrain grid (number of points)
+      #   depth: 0.13
+      #   size: 4           # Length of the terrain grid (number of points)
       # - name: central_depression_terrain
       #   compliant: True
       #   count: 1
       #   level: 1
       #   particle_present: True
       #   system: 1
-      #   terrain_depression_depth: 0.1
-      #   terrain_depression_size: 3           # Length of the terrain grid (number of points)
+      #   depth: 0.1
+      #   size: 3           # Length of the terrain grid (number of points)
 
       # - name: central_depression_terrain
       #   compliant: True
@@ -78,21 +78,21 @@ env:
       #   particle_present: True
       #   particle_params:
       #   system: 3
-      #   terrain_depression_depth: 0.1
-      #   terrain_depression_size: 3           # Length of the terrain grid (number of points)
+      #   depth: 0.1
+      #   size: 3           # Length of the terrain grid (number of points)
 
       # - name: central_depression_terrain
       #   compliant: True
       #   particle_present: True
       #   system: 2
-      #   terrain_depression_depth: 0.05
-      #   terrain_depression_size: 3          
+      #   depth: 0.05
+      #   size: 3          
       # - name: central_depression_terrain
       #   compliant: True
       #   particle_present: True
       #   system: 2
-      #   terrain_depression_depth: 0.1
-      #   terrain_depression_size: 3           # Length of the terrain grid (number of points)
+      #   depth: 0.1
+      #   size: 3           # Length of the terrain grid (number of points)
 
   particles:
     enabled: True
@@ -285,34 +285,34 @@ env:
     KdFactorRange : [0.5, 1.5]
     gravityRange : [-1.0, 1.0]
     gravityRandIntervalSecs : 7
-    randomizeGravity: False
-    randomizeFriction: False
-    randomizeCOM: False
-    randomizeAddedMass: False
-    randomizeMotorStrength: False
-    randomizeMotorOffset: False
-    randomizeKpFactor: False
-    randomizeKdFactor: False
+    randomizeGravity: True
+    randomizeFriction: True
+    randomizeCOM: True
+    randomizeAddedMass: True
+    randomizeMotorStrength: True
+    randomizeMotorOffset: True
+    randomizeKpFactor: True
+    randomizeKdFactor: True
 
     material_randomization:
-      enabled: False
+      enabled: True
       compliance:
         enabled: False
         interval: 50
         deformation: [0.1, 0.25]
 
       particles:
-        enabled: False
+        enabled: True
         interval: 50
         systems:
           system1: 
-            enabled: False
+            enabled: True
             pbd_material_particle_friction_scale: [0.1, 0.5]
             pbd_material_particle_adhesion_scale: [5000, 10000]
             pbd_material_density: [1000, 2000]
 
           system2:
-            enabled: False
+            enabled: True
             pbd_material_particle_friction_scale: [0.1, 0.4]
             pbd_material_particle_adhesion_scale: [4000, 8000]
             pbd_material_density: [900, 1800]

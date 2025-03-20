@@ -1,4 +1,4 @@
-Metadata-Version: 2.2
+Metadata-Version: 2.4
 Name: leggeedisaacgymenvs
 Version: 4.0.0
 Summary: RL environments for robot learning in NVIDIA Isaac Sim.
@@ -18,5 +18,6 @@ Requires-Dist: gymnasium==0.28.1
 Dynamic: author
 Dynamic: classifier
 Dynamic: keywords
+Dynamic: license-file
 Dynamic: requires-dist
 Dynamic: summary
