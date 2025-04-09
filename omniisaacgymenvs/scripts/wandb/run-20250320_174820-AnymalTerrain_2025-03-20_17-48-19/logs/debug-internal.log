@@ -1,0 +1,102 @@
+2025-03-20 17:48:21,342 INFO    MainThread:87911 [internal.py:wandb_internal():90] W&B internal server running at pid: 87911, started at: 2025-03-20 17:48:21.341709
+2025-03-20 17:48:21,343 INFO    WriterThread:87911 [datastore.py:open_for_write():75] open: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/run-AnymalTerrain_2025-03-20_17-48-19.wandb
+2025-03-20 17:48:21,557 DEBUG   SenderThread:87911 [sender.py:send():236] send: header
+2025-03-20 17:48:21,557 DEBUG   SenderThread:87911 [sender.py:send():236] send: run
+2025-03-20 17:48:21,580 INFO    SenderThread:87911 [sender.py:_maybe_setup_resume():493] checking resume status for bluewolf/rl/AnymalTerrain_2025-03-20_17-48-19
+2025-03-20 17:48:22,285 INFO    SenderThread:87911 [dir_watcher.py:__init__():216] watching files in: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files
+2025-03-20 17:48:22,286 INFO    SenderThread:87911 [sender.py:_start_run_threads():815] run started: AnymalTerrain_2025-03-20_17-48-19 with start time 1742489300
+2025-03-20 17:48:22,291 DEBUG   SenderThread:87911 [sender.py:send():236] send: summary
+2025-03-20 17:48:22,292 INFO    SenderThread:87911 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2025-03-20 17:48:22,298 DEBUG   HandlerThread:87911 [handler.py:handle_request():140] handle_request: check_version
+2025-03-20 17:48:22,298 DEBUG   SenderThread:87911 [sender.py:send_request():250] send_request: check_version
+2025-03-20 17:48:22,418 DEBUG   HandlerThread:87911 [handler.py:handle_request():140] handle_request: run_start
+2025-03-20 17:48:22,426 DEBUG   HandlerThread:87911 [meta.py:__init__():35] meta init
+2025-03-20 17:48:22,427 DEBUG   HandlerThread:87911 [meta.py:__init__():49] meta init done
+2025-03-20 17:48:22,427 DEBUG   HandlerThread:87911 [meta.py:probe():209] probe
+2025-03-20 17:48:22,445 DEBUG   HandlerThread:87911 [meta.py:_setup_git():199] setup git
+2025-03-20 17:48:22,471 DEBUG   HandlerThread:87911 [meta.py:_setup_git():206] setup git done
+2025-03-20 17:48:22,471 DEBUG   HandlerThread:87911 [meta.py:_save_pip():53] save pip
+2025-03-20 17:48:22,472 DEBUG   HandlerThread:87911 [meta.py:_save_pip():67] save pip done
+2025-03-20 17:48:22,472 DEBUG   HandlerThread:87911 [meta.py:probe():247] probe done
+2025-03-20 17:48:22,623 DEBUG   SenderThread:87911 [sender.py:send():236] send: files
+2025-03-20 17:48:22,623 INFO    SenderThread:87911 [sender.py:_save_file():952] saving file wandb-metadata.json with policy now
+2025-03-20 17:48:22,627 DEBUG   HandlerThread:87911 [handler.py:handle_request():140] handle_request: stop_status
+2025-03-20 17:48:22,627 DEBUG   SenderThread:87911 [sender.py:send_request():250] send_request: stop_status
+2025-03-20 17:48:22,922 DEBUG   SenderThread:87911 [sender.py:send():236] send: telemetry
+2025-03-20 17:48:23,176 INFO    Thread-11 :87911 [upload_job.py:push():138] Uploaded file /tmp/tmpfojy01_wwandb/1rzqvvyu-wandb-metadata.json
+2025-03-20 17:48:23,287 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_created():269] file/dir created: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/output.log
+2025-03-20 17:48:23,288 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_created():269] file/dir created: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/wandb-summary.json
+2025-03-20 17:48:23,288 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_created():269] file/dir created: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/wandb-metadata.json
+2025-03-20 17:48:23,288 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_created():269] file/dir created: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/requirements.txt
+2025-03-20 17:48:23,356 INFO    HandlerThread:87911 [handler.py:handle_tbrecord():723] handling tbrecord: tbrecord {
+  log_dir: "/media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/runs"
+  save: true
+}
+
+2025-03-20 17:48:23,356 DEBUG   HandlerThread:87911 [config_util.py:dict_from_config_file():100] no default config file found in config-defaults.yaml
+2025-03-20 17:48:23,382 DEBUG   SenderThread:87911 [sender.py:send():236] send: tbrecord
+2025-03-20 17:48:23,384 DEBUG   SenderThread:87911 [sender.py:send():236] send: files
+2025-03-20 17:48:23,384 INFO    SenderThread:87911 [sender.py:_save_file():952] saving file events.out.tfevents.1742489303.isaac.87332.0 with policy live
+2025-03-20 17:48:23,963 INFO    Thread-14 :87911 [upload_job.py:push():138] Uploaded file /tmp/tmpfojy01_wwandb/dv1wyn2l-events.out.tfevents.1742489303.isaac.87332.0
+2025-03-20 17:48:24,287 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_created():269] file/dir created: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/events.out.tfevents.1742489303.isaac.87332.0
+2025-03-20 17:48:25,021 DEBUG   HandlerThread:87911 [handler.py:handle_request():140] handle_request: partial_history
+2025-03-20 17:48:25,023 DEBUG   SenderThread:87911 [sender.py:send():236] send: history
+2025-03-20 17:48:25,023 DEBUG   SenderThread:87911 [sender.py:send():236] send: summary
+2025-03-20 17:48:25,024 INFO    SenderThread:87911 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2025-03-20 17:48:25,288 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_modified():286] file/dir modified: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/output.log
+2025-03-20 17:48:25,288 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_modified():286] file/dir modified: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/wandb-summary.json
+2025-03-20 17:48:26,190 DEBUG   HandlerThread:87911 [handler.py:handle_request():140] handle_request: partial_history
+2025-03-20 17:48:26,191 DEBUG   SenderThread:87911 [sender.py:send():236] send: history
+2025-03-20 17:48:26,191 DEBUG   SenderThread:87911 [sender.py:send():236] send: summary
+2025-03-20 17:48:26,192 INFO    SenderThread:87911 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2025-03-20 17:48:26,289 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_modified():286] file/dir modified: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/wandb-summary.json
+2025-03-20 17:48:27,290 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_modified():286] file/dir modified: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/output.log
+2025-03-20 17:48:27,344 DEBUG   HandlerThread:87911 [handler.py:handle_request():140] handle_request: partial_history
+2025-03-20 17:48:27,345 DEBUG   SenderThread:87911 [sender.py:send():236] send: history
+2025-03-20 17:48:27,345 DEBUG   SenderThread:87911 [sender.py:send():236] send: summary
+2025-03-20 17:48:27,346 INFO    SenderThread:87911 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2025-03-20 17:48:28,292 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_modified():286] file/dir modified: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/wandb-summary.json
+2025-03-20 17:48:28,626 DEBUG   HandlerThread:87911 [handler.py:handle_request():140] handle_request: partial_history
+2025-03-20 17:48:28,627 DEBUG   SenderThread:87911 [sender.py:send():236] send: history
+2025-03-20 17:48:28,628 DEBUG   SenderThread:87911 [sender.py:send():236] send: summary
+2025-03-20 17:48:28,628 INFO    SenderThread:87911 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2025-03-20 17:48:29,293 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_modified():286] file/dir modified: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/output.log
+2025-03-20 17:48:29,293 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_modified():286] file/dir modified: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/wandb-summary.json
+2025-03-20 17:48:29,830 DEBUG   HandlerThread:87911 [handler.py:handle_request():140] handle_request: partial_history
+2025-03-20 17:48:29,831 DEBUG   SenderThread:87911 [sender.py:send():236] send: history
+2025-03-20 17:48:29,831 DEBUG   SenderThread:87911 [sender.py:send():236] send: summary
+2025-03-20 17:48:29,832 INFO    SenderThread:87911 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2025-03-20 17:48:30,294 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_modified():286] file/dir modified: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/wandb-summary.json
+2025-03-20 17:48:31,001 DEBUG   HandlerThread:87911 [handler.py:handle_request():140] handle_request: partial_history
+2025-03-20 17:48:31,002 DEBUG   SenderThread:87911 [sender.py:send():236] send: history
+2025-03-20 17:48:31,002 DEBUG   SenderThread:87911 [sender.py:send():236] send: summary
+2025-03-20 17:48:31,003 INFO    SenderThread:87911 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2025-03-20 17:48:31,295 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_modified():286] file/dir modified: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/output.log
+2025-03-20 17:48:31,295 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_modified():286] file/dir modified: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/wandb-summary.json
+2025-03-20 17:48:32,175 DEBUG   HandlerThread:87911 [handler.py:handle_request():140] handle_request: partial_history
+2025-03-20 17:48:32,176 DEBUG   SenderThread:87911 [sender.py:send():236] send: history
+2025-03-20 17:48:32,176 DEBUG   SenderThread:87911 [sender.py:send():236] send: summary
+2025-03-20 17:48:32,177 INFO    SenderThread:87911 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2025-03-20 17:48:32,296 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_modified():286] file/dir modified: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/wandb-summary.json
+2025-03-20 17:48:33,000 WARNING MainThread:87911 [internal.py:wandb_internal():153] Internal process interrupt: 1
+2025-03-20 17:48:33,298 INFO    Thread-7  :87911 [dir_watcher.py:_on_file_modified():286] file/dir modified: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/output.log
+2025-03-20 17:48:39,005 WARNING MainThread:87911 [internal.py:is_dead():387] Internal process exiting, parent pid 87332 disappeared
+2025-03-20 17:48:39,005 ERROR   MainThread:87911 [internal.py:wandb_internal():149] Internal process shutdown.
+2025-03-20 17:48:39,668 INFO    SenderThread:87911 [sender.py:finish():1114] shutting down sender
+2025-03-20 17:48:39,668 INFO    SenderThread:87911 [dir_watcher.py:finish():353] shutting down directory watcher
+2025-03-20 17:48:39,669 INFO    WriterThread:87911 [datastore.py:close():279] close: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/run-AnymalTerrain_2025-03-20_17-48-19.wandb
+2025-03-20 17:48:39,674 INFO    HandlerThread:87911 [handler.py:finish():806] shutting down handler
+2025-03-20 17:48:40,304 INFO    SenderThread:87911 [dir_watcher.py:finish():383] scan: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files
+2025-03-20 17:48:40,306 INFO    SenderThread:87911 [dir_watcher.py:finish():397] scan save: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/config.yaml config.yaml
+2025-03-20 17:48:40,308 INFO    SenderThread:87911 [dir_watcher.py:finish():397] scan save: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/events.out.tfevents.1742489303.isaac.87332.0 events.out.tfevents.1742489303.isaac.87332.0
+2025-03-20 17:48:40,310 INFO    SenderThread:87911 [dir_watcher.py:finish():397] scan save: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/output.log output.log
+2025-03-20 17:48:40,322 INFO    SenderThread:87911 [dir_watcher.py:finish():397] scan save: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/requirements.txt requirements.txt
+2025-03-20 17:48:40,334 INFO    SenderThread:87911 [dir_watcher.py:finish():397] scan save: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/wandb-metadata.json wandb-metadata.json
+2025-03-20 17:48:40,335 INFO    SenderThread:87911 [dir_watcher.py:finish():397] scan save: /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/wandb-summary.json wandb-summary.json
+2025-03-20 17:48:40,342 INFO    SenderThread:87911 [file_pusher.py:finish():171] shutting down file pusher
+2025-03-20 17:48:40,343 INFO    SenderThread:87911 [file_pusher.py:join():176] waiting for file pusher
+2025-03-20 17:48:40,988 INFO    Thread-16 :87911 [upload_job.py:push():138] Uploaded file /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/output.log
+2025-03-20 17:48:40,994 INFO    Thread-15 :87911 [upload_job.py:push():138] Uploaded file /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/config.yaml
+2025-03-20 17:48:40,999 INFO    Thread-17 :87911 [upload_job.py:push():138] Uploaded file /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/requirements.txt
+2025-03-20 17:48:41,039 INFO    Thread-18 :87911 [upload_job.py:push():138] Uploaded file /media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/wandb/run-20250320_174820-AnymalTerrain_2025-03-20_17-48-19/files/wandb-summary.json
+2025-03-20 17:48:46,361 INFO    MainThread:87911 [internal.py:handle_exit():80] Internal process exited

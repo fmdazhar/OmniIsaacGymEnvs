@@ -1,0 +1,24 @@
+{
+    "os": "Linux-5.15.0-130-generic-x86_64-with-glibc2.31",
+    "python": "3.10.14",
+    "heartbeatAt": "2025-03-20T16:28:14.854516",
+    "startedAt": "2025-03-20T16:28:12.737142",
+    "docker": null,
+    "gpu": "NVIDIA GeForce RTX 4070",
+    "gpu_count": 1,
+    "cpu_count": 8,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs/omniisaacgymenvs/scripts/train.py",
+    "codePath": "omniisaacgymenvs/scripts/train.py",
+    "git": {
+        "remote": "https://github.com/fmdazhar/OmniIsaacGymEnvs.git",
+        "commit": "15b36164c3460bec4a85df8fce9ed2a94f66a404"
+    },
+    "email": "fmdazhar@gmail.com",
+    "root": "/media/isaac/Daten/azhar_ws/leggedOmniIsaacGymEnvs/OmniIsaacGymEnvs",
+    "host": "isaac",
+    "username": "isaac",
+    "executable": "/media/isaac/Daten/azhar_ws/isaac-sim-4.0.0/kit/python/bin/python3"
+}

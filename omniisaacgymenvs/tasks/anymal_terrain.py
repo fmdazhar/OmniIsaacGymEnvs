@@ -89,6 +89,7 @@ class AnymalTerrainTask(RLTask):
         self.created_particle_systems = {}
         self.created_materials = {}
         self.particle_instancers_by_level = {}
+        self._terrains_by_level = {}  # dictionary: level -> (tensor of row indices)
         self.total_particles = 0    # Initialize a counter for total particles
 
         # joint positions offsets
@@ -326,6 +327,13 @@ class AnymalTerrainTask(RLTask):
         self.terrain_origins = torch.from_numpy(self.terrain.env_origins).float().to(self.device)
         self.terrain_details = torch.tensor(self.terrain.terrain_details, dtype=torch.float).to(self.device)
 
+        levels = self.terrain_details[:, 1].long()  # shape: (N, ) where N=# of terrain blocks
+        unique_levels = torch.unique(levels)
+        for lvl in unique_levels:
+            mask = (levels == lvl)
+            row_indices = torch.nonzero(mask, as_tuple=False).flatten()
+            self._terrains_by_level[lvl.item()] = row_indices
+
     def get_anymal(self):
         anymal_translation = torch.tensor([0.0, 0.0, 0.42])
         anymal_orientation = torch.tensor([1.0, 0.0, 0.0, 0.0])
@@ -504,9 +512,7 @@ class AnymalTerrainTask(RLTask):
                     self._material_apis[i] = PhysxSchema.PhysxMaterialAPI(self._prims[i])
                 else:
                     self._material_apis[i] = PhysxSchema.PhysxMaterialAPI.Apply(self._prims[i])
-
-        # Assign the stiffness and damping values to each environment.
-        for i in range(self._num_envs):
+            # Set the compliance values for the material.
             self._material_apis[i].CreateCompliantContactStiffnessAttr().Set(float(self.stiffness[i, 0]))
             self._material_apis[i].CreateCompliantContactDampingAttr().Set(float(self.damping[i, 0]))
 
@@ -714,34 +720,7 @@ class AnymalTerrainTask(RLTask):
         self.by_start = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
         self.by_end   = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
 
-
-        for idx in range(self.num_envs):
-            lvl = int(self.terrain_levels[idx].item())
-            candidate_mask = (self.terrain_details[:, 1] == lvl)
-            candidate_terrains = self.terrain_details[candidate_mask]
-            if candidate_terrains.shape[0] == 0:
-                raise ValueError(f"No terrain blocks found with level={lvl}")
-
-            rand_idx = torch.randint(0, candidate_terrains.shape[0], (1,), device=self.device)
-            row = int(candidate_terrains[rand_idx, 2].item())
-            col = int(candidate_terrains[rand_idx, 3].item())
-            is_compliant = int(candidate_terrains[rand_idx, 6].item())
-            system = int(candidate_terrains[rand_idx, 7].item())
-
-            # bounding indices
-            bx0 = candidate_terrains[rand_idx, 10].item()
-            bx1 = candidate_terrains[rand_idx, 11].item()
-            by0 = candidate_terrains[rand_idx, 12].item()
-            by1 = candidate_terrains[rand_idx, 13].item()
-
-            self.bx_start[idx] = bx0
-            self.bx_end[idx]   = bx1
-            self.by_start[idx] = by0
-            self.by_end[idx]   = by1
-
-            self.compliance[idx] = bool(is_compliant)
-            self.system_idx[idx] = system
-            self.env_origins[idx] = self.terrain_origins[row, col]
+        env_ids = torch.arange(self._num_envs, dtype=torch.int64, device=self._device)
 
         self.num_dof = self._anymals.num_dof
         self.joint_pos_target = torch.zeros(self.num_envs, self.num_dof, dtype=torch.float,
@@ -793,7 +772,12 @@ class AnymalTerrainTask(RLTask):
         self.default_inertias = self._anymals._base.get_inertias().clone()
         # self.default_materials = self._anymals._foot._physics_view.get_material_properties().to(self.device)
         body_masses = self._anymals.get_body_masses().clone()  # already a torch tensor
-        self.total_masses = torch.sum(body_masses, dim=1)
+        self.total_masses = torch.sum(body_masses, dim=1).to(self.device)
+
+        # Determine the highest terrain level from the terrain details.
+        self.highest_level = int(self.terrain_details[:, 1].max().item())
+        # Track how many levels we have unlocked so far. Start with 0 (or 1, depending on your preference).
+        self.current_unlocked_level = 0
 
         # Get joint limits
         dof_limits = self._anymals.get_dof_limits()
@@ -808,18 +792,17 @@ class AnymalTerrainTask(RLTask):
         self.a1_dof_soft_lower_limits = soft_lower_limits.to(device=self._device)
         self.a1_dof_soft_upper_limits = soft_upper_limits.to(device=self._device)
 
-        indices = torch.arange(self._num_envs, dtype=torch.int64, device=self._device)
 
         if self._task_cfg["env"]["randomizationRanges"]["randomizeAddedMass"]:
-            self._set_mass(self._anymals._base, env_ids=indices)
+            self._set_mass(self._anymals._base, env_ids=env_ids)
         if self._task_cfg["env"]["randomizationRanges"]["randomizeCOM"]:
-            self._set_coms(self._anymals._base, env_ids=indices)
+            self._set_coms(self._anymals._base, env_ids=env_ids)
         if self._task_cfg["env"]["randomizationRanges"]["randomizeFriction"]:
-            self._set_friction(self._anymals._foot, env_ids=indices)
+            self._set_friction(self._anymals._foot, env_ids=env_ids)
 
         self._prepare_reward_function()
 
-        self.reset_idx(indices)
+        self.reset_idx(env_ids)
         
         self.init_done = True
 
@@ -890,52 +873,90 @@ class AnymalTerrainTask(RLTask):
 
 
     def update_terrain_level(self, env_ids):
+    """
+    Example version that:
+      - If we've just unlocked a new level (i.e., self.current_unlocked_level < self.highest_level),
+        then half of the env_ids go to the new level, half remain among lower levels.
+      - Once we have reached all levels unlocked, distribution among all 0..highest_level is random.
+    """
+
         if not self.init_done:
-            # do not change on initial reset
+            # Skip terrain update on the very first reset if you like, or keep minimal logic
             return
-            # Save a copy of the current terrain levels for the specified env_ids
 
-        old_levels = self.terrain_levels[env_ids].clone()
-        root_pos, _ = self._anymals.get_world_poses(clone=False)
-        distance = torch.norm(root_pos[env_ids, :2] - self.env_origins[env_ids, :2], dim=1)
-        self.terrain_levels[env_ids] -= 1 * (
-            distance < torch.norm(self.commands[env_ids, :2]) * self.max_episode_length_s * 0.25
-        )
-        self.terrain_levels[env_ids] += 1 * (distance > self.terrain.env_length / 2)
-        self.terrain_levels[env_ids] = torch.clip(self.terrain_levels[env_ids], 0) % self.terrain.env_rows
-        # Sample each environment's terrain block from terrain_details
-        if not torch.equal(self.terrain_levels[env_ids], old_levels):            
-            for idx in env_ids:
-                lvl = int(self.terrain_levels[idx].item())
-                candidate_mask = (self.terrain_details[:, 1] == lvl)
-                candidate_terrains = self.terrain_details[candidate_mask]
-                if candidate_terrains.shape[0] == 0:
-                    raise ValueError(f"No terrain blocks found with level={lvl}")
+        # Shuffle env_ids so the first half for "new level" is random
+        rand_perm = torch.randperm(len(env_ids), device=self.device)
+        mid_index = len(env_ids) // 2
+        new_level_ids = env_ids[rand_perm[:mid_index]]
+        old_level_ids = env_ids[rand_perm[mid_index:]]
 
-                rand_idx = torch.randint(0, candidate_terrains.shape[0], (1,), device=self.device)
-                row = int(candidate_terrains[rand_idx, 2].item())
-                col = int(candidate_terrains[rand_idx, 3].item())
-                is_compliant = int(candidate_terrains[rand_idx, 6].item())
-                system = int(candidate_terrains[rand_idx, 7].item())
+        # If we haven't yet unlocked all levels, we "push" to the next level
+        if self.current_unlocked_level < self.highest_level:
+            # Unlock the next level (increment by 1).
+            self.current_unlocked_level += 1
 
-                # bounding indices
-                bx0 = candidate_terrains[rand_idx, 10].item()
-                bx1 = candidate_terrains[rand_idx, 11].item()
-                by0 = candidate_terrains[rand_idx, 12].item()
-                by1 = candidate_terrains[rand_idx, 13].item()
+            # 50% of the envs: assign them to the newly unlocked level
+            self.terrain_levels[new_level_ids] = self.current_unlocked_level
 
-                self.bx_start[idx] = bx0
-                self.bx_end[idx]   = bx1
-                self.by_start[idx] = by0
-                self.by_end[idx]   = by1
+            # 50% of the envs: random among the previously unlocked levels
+            # (that is, between 0 .. (current_unlocked_level - 1))
+            if self.current_unlocked_level > 0:
+                self.terrain_levels[old_level_ids] = torch.randint(
+                    low=0,
+                    high=self.current_unlocked_level,  # does NOT include self.current_unlocked_level
+                    size=(len(old_level_ids),),
+                    device=self.device,
+                )
+            else:
+                # if current_unlocked_level == 0, all old_level_ids are forced to 0
+                self.terrain_levels[old_level_ids] = 0
 
-                self.compliance[idx] = bool(is_compliant)
-                self.system_idx[idx] = system
-                self.env_origins[idx] = self.terrain_origins[row, col]
+        else:
+            # Once all levels are unlocked, we just do random among ALL levels [0..highest_level]
+            self.terrain_levels[env_ids] = torch.randint(
+                low=0,
+                high=self.highest_level + 1,  # +1 because torch.randint's high is exclusive
+                size=(len(env_ids),),
+                device=self.device,
+            )
 
-            # Update compliance and PBD parameters for the environments that changed
-            self.set_compliance()
-            self.store_pbd_params()
+        levels = self.terrain_levels[env_ids]
+        # Group env_ids by terrain level:
+        unique_levels, inverse_idx = torch.unique(levels, return_inverse=True)
+
+        for i, lvl in enumerate(unique_levels):
+            # Get which envs in env_ids map to this terrain level
+            group = env_ids[inverse_idx == i]
+            # Rows for this level
+            candidate_indices = self._terrains_by_level[lvl.item()]
+
+            # Randomly sample from that subset
+            row_count = candidate_indices.shape[0]
+            rand_rows = torch.randint(
+                low=0,
+                high=row_count,
+                size=(group.shape[0],),
+                device=self.device,
+            )
+            chosen_rows = candidate_indices[rand_rows]
+
+            # bounding boxes, environment origins, PBD or compliance, etc.
+            self.bx_start[group] = self.terrain_details[chosen_rows, 10]
+            self.bx_end[group]   = self.terrain_details[chosen_rows, 11]
+            self.by_start[group] = self.terrain_details[chosen_rows, 12]
+            self.by_end[group]   = self.terrain_details[chosen_rows, 13]
+
+            self.compliance[group]  = self.terrain_details[chosen_rows, 6].bool()
+            self.system_idx[group]  = self.terrain_details[chosen_rows, 7].long()
+
+            # (row, col) -> environment origins
+            rows = self.terrain_details[chosen_rows, 2].long()
+            cols = self.terrain_details[chosen_rows, 3].long()
+            self.env_origins[group] = self.terrain_origins[rows, cols]
+
+        # Update compliance and stored PBD parameters for these newly changed envs
+        self.set_compliance(env_ids)
+        self.store_pbd_params()
 
     def refresh_dof_state_tensors(self):
         self.dof_pos = self._anymals.get_joint_positions(clone=False)
@@ -947,8 +968,7 @@ class AnymalTerrainTask(RLTask):
         self.thigh_pos, self.thigh_quat = self._anymals._thigh.get_world_poses(clone=False)
 
     def refresh_net_contact_force_tensors(self):
-        new_foot_contact_forces = self._anymals._foot.get_net_contact_forces(dt=self.dt,clone=False).view(self._num_envs, 4, 3)
-        self.foot_contact_forces = self.foot_contact_forces * 0.9 + new_foot_contact_forces * 0.1
+        self.foot_contact_forces = self._anymals._foot.get_net_contact_forces(dt=self.dt,clone=False).view(self._num_envs, 4, 3)
         self.thigh_contact_forces = self._anymals._thigh.get_net_contact_forces(dt=self.dt,clone=False).view(self._num_envs, 4, 3)
         self.calf_contact_forces = self._anymals._calf.get_net_contact_forces(dt=self.dt,clone=False).view(self._num_envs, 4, 3)
         self.base_contact_forces = self._anymals._base.get_net_contact_forces(dt=self.dt,clone=False).view(self._num_envs, 3)
